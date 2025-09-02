@@ -56,25 +56,8 @@ tr.show { opacity:1; transform:translateY(0); }
 </table>
 
 </div>
-
-<!-- Firebase SDK -->
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  
 <script>
-// Firebase Config
-const firebaseConfig = {
-  apiKey: "AIzaSyCjxG7JzLbElQ03bBMeVb-cOlvTBq6pn7o",
-  authDomain: "cloudmart-40404.firebaseapp.com",
-  databaseURL: "https://cloudmart-40404-default-rtdb.firebaseio.com",
-  projectId: "cloudmart-40404",
-  storageBucket: "cloudmart-40404.appspot.com",
-  messagingSenderId: "1018112523638",
-  appId: "1:1018112523638:web:ec5dd627a16aec707dce57",
-  measurementId: "G-JD5F9TMYK6"
-};
-// Initialize Firebase
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
 
 // DOM
 const productList = document.getElementById("productList");
@@ -191,3 +174,4 @@ function printInvoice(key){
 </script>
 </body>
 </html>
+
