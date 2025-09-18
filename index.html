@@ -4,28 +4,91 @@
 <meta charset="UTF-8">
 <title>Cloud Mart - Admin</title>
 <style>
-body { font-family: Arial, sans-serif; background:#f4f4f4; margin:0; padding:0; }
-header { background:#333; color:#fff; padding:15px; text-align:center; font-size:22px; }
-.container { padding:20px; }
-h2 { margin-top:30px; }
-input, select, button, textarea { padding:8px; margin:5px 0; border:1px solid #ccc; border-radius:5px; width:100%; }
-table { width:100%; border-collapse:collapse; margin-top:15px; }
-th, td { border:1px solid #ddd; padding:10px; text-align:center; }
-th { background:#555; color:#fff; }
-button { cursor:pointer; transition:0.3s; }
-button:hover { transform:scale(1.05); }
-.delete { background:#dc3545; color:#fff; border:none; padding:5px 10px; }
-.done { background:#28a745; color:#fff; border:none; padding:5px 10px; }
-.print { background:#007bff; color:#fff; border:none; padding:5px 10px; }
-tr { opacity:0; transform:translateY(20px); transition:0.5s; }
-tr.show { opacity:1; transform:translateY(0); }
+body {
+  font-family: Arial, sans-serif;
+  background:#f4f4f4;
+  margin:0;
+  padding:0;
+}
+header {
+  background:#333;
+  color:#fff;
+  padding:15px;
+  text-align:center;
+  font-size:22px;
+}
+.container {
+  padding:20px;
+}
+h2 {
+  margin-top:30px;
+}
+input, select, button {
+  padding:8px;
+  margin:5px 0;
+  border:1px solid #ccc;
+  border-radius:5px;
+}
+table {
+  width:100%;
+  border-collapse:collapse;   /* cell গুলোর মধ্যে gap remove */
+  border-spacing:0;           /* কোনো ফাঁকা জায়গা থাকবে না */
+  margin-top:15px;
+}
+th, td {
+  border:1px solid #ddd;
+  padding:12px 10px;          /* padding balance করা হলো */
+  text-align:center;
+  vertical-align: middle;     /* content একদম মাঝখানে */
+}
+th {
+  background:#555;
+  color:#fff;
+  font-weight:600;
+}
+button {
+  cursor:pointer;
+  transition:0.3s;
+}
+button:hover {
+  transform:scale(1.05);
+}
+.delete {
+  background:#dc3545;
+  color:#fff;
+  border:none;
+  padding:5px 10px;
+}
+.done {
+  background:#28a745;
+  color:#fff;
+  border:none;
+  padding:5px 10px;
+}
+.print {
+  background:#007bff;
+  color:#fff;
+  border:none;
+  padding:5px 10px;
+}
+/* animation fix */
+tbody tr {
+  opacity:0;
+  transform:translateY(10px);
+  transition:0.4s ease;
+}
+tbody tr.show {
+  opacity:1;
+  transform:translateY(0);
+}
+
 </style>
 </head>
 <body>
 <header>Cloud Mart - Admin Panel</header>
 <div class="container">
 
-<h2>Payment Settings</h2>
+<h2>Payment Method</h2>
 <label>Bkash Number:</label>
 <input type="text" id="adminBkash" placeholder="Enter Bkash Number">
 <button onclick="saveBkash()">Save</button><br>
@@ -33,97 +96,131 @@ tr.show { opacity:1; transform:translateY(0); }
 <input type="text" id="adminNagad" placeholder="Enter Nagad Number">
 <button onclick="saveNagad()">Save</button>
 
+<!-- Add Product -->
+
 <h2>Add Product</h2>
 <form id="productForm">
 <input type="text" id="prodName" placeholder="Product Name" required>
 <input type="text" id="prodCategory" placeholder="Category" required>
-<input type="number" id="prodPrice" placeholder="Price" required>
-<textarea id="prodDescription" placeholder="Product Description" required></textarea>
+<input type="number" id="prodPrice" placeholder="Price" step="0.01" required>
+<input id="prodDescription" placeholder="Product Description" required>
 <input type="file" id="prodImage" accept="image/*">
 <button type="submit">Add Product</button>
 </form>
 
 <h2>Product List</h2>
 <table>
-<thead><tr><th>Name</th><th>Category</th><th>Price</th><th>Description</th><th>Image</th><th>Action</th></tr></thead>
+
+<thead>
+
+  <tr>
+    <th>Name</th>
+    <th>Category</th>
+    <th>Price</th>
+    <th>Description</th>
+    <th>Image</th>
+    <th>Action</th>
+
+  </tr>
+
+</thead>
+
 <tbody id="productList"></tbody>
+
 </table>
 
 <h2>Orders</h2>
+
 <table>
-<thead><tr><th>Product</th><th>User</th><th>Email</th><th>Phone</th><th>Payment</th><th>Send Number</th><th>Trnx ID</th><th>Date</th><th>Actions</th></tr></thead>
+
+<thead>
+  
+  <tr>
+    
+    <th>Product</th>
+    <th>User</th>
+    <th>Email</th>
+    <th>Phone</th>
+    <th>Payment</th>
+    <th>Send Number</th>
+    <th>Trnx ID</th>
+    <th>Date</th>
+    <th>Actions</th>
+  
+  </tr>
+
+</thead>
+
 <tbody id="orderList"></tbody>
+
 </table>
 
 </div>
-  
+
 <script>
+let products=JSON.parse(localStorage.getItem("products"))||[];
+let orders=JSON.parse(localStorage.getItem("orders"))||[];
+let bkashNumber=localStorage.getItem("bkashNumber")||"";
+let nagadNumber=localStorage.getItem("nagadNumber")||"";
 
-// DOM
-const productList = document.getElementById("productList");
-const orderList = document.getElementById("orderList");
-const adminBkash = document.getElementById("adminBkash");
-const adminNagad = document.getElementById("adminNagad");
+document.getElementById("adminBkash").value=bkashNumber;
+document.getElementById("adminNagad").value=nagadNumber;
 
-// Load settings
-db.ref("settings").once("value").then(snap=>{
-  const data = snap.val()||{};
-  adminBkash.value = data.bkashNumber||"";
-  adminNagad.value = data.nagadNumber||"";
-});
-
-// Save Payment Numbers
 function saveBkash(){
-  db.ref("settings").update({bkashNumber:adminBkash.value});
+  bkashNumber=document.getElementById("adminBkash").value;
+  localStorage.setItem("bkashNumber",bkashNumber);
   alert("Bkash Number saved!");
 }
 function saveNagad(){
-  db.ref("settings").update({nagadNumber:adminNagad.value});
+  nagadNumber=document.getElementById("adminNagad").value;
+  localStorage.setItem("nagadNumber",nagadNumber);
   alert("Nagad Number saved!");
 }
 
-// Render Products
-function renderProducts(snapshot){
+const productList=document.getElementById("productList");
+const orderList=document.getElementById("orderList");
+
+function renderProducts(){
   productList.innerHTML="";
-  snapshot.forEach(child=>{
-    const p = child.val();
-    const key = child.key;
+  products.forEach((p,i)=>{
     let tr=document.createElement("tr");
     tr.className="show";
-    tr.innerHTML=`<td>${p.name}</td><td>${p.category}</td><td>$${p.price}</td><td>${p.description}</td>
-    <td>${p.image?'<img src="'+p.image+'" width="50">':''}</td>
-    <td><button class="delete" onclick="deleteProduct('${key}')">Delete</button></td>`;
+    tr.innerHTML=`
+      <td>${p.name}</td>
+      <td>${p.category}</td>
+      <td>$${p.price}</td>
+      <td>${p.description}</td>
+      <td>${p.image?'<img src="'+p.image+'" width="50">':''}</td>
+      <td><button class="delete" onclick="deleteProduct(${i})">Delete</button></td>`;
     productList.appendChild(tr);
-    setTimeout(()=>tr.classList.add("show"),100);
+    setTimeout(()=>tr.classList.add("show"),100*i);
   });
 }
 
-// Render Orders
-function renderOrders(snapshot){
+function renderOrders(){
   orderList.innerHTML="";
-  snapshot.forEach(child=>{
-    const o = child.val();
-    const key = child.key;
+  orders.forEach((o,i)=>{
     let tr=document.createElement("tr");
     tr.className="show";
-    tr.innerHTML=`<td>${o.product}</td><td>${o.name}</td><td>${o.email}</td>
-    <td>${o.phone}</td><td>${o.payment}</td><td>${o.sendNumber||''}</td>
-    <td>${o.trnx||''}</td><td>${o.date}</td>
-    <td>
-      <button class="done" onclick="deleteOrder('${key}')">Done</button>
-      <button class="print" onclick="printInvoice('${key}')">Print</button>
-    </td>`;
+    tr.innerHTML=`
+      <td>${o.product}</td>
+      <td>${o.name}</td>
+      <td>${o.email}</td>
+      <td>${o.phone}</td>
+      <td>${o.payment}</td>
+      <td>${o.sendNumber||''}</td>
+      <td>${o.trnx||''}</td>
+      <td>${o.date}</td>
+      <td>
+        <button class="done" onclick="deleteOrder(${i})">Done</button>
+        <button class="print" onclick="printInvoice(${i})">Print</button>
+      </td>`;
     orderList.appendChild(tr);
-    setTimeout(()=>tr.classList.add("show"),100);
+    setTimeout(()=>tr.classList.add("show"),100*i);
   });
 }
 
-// Listen to Products & Orders
-db.ref("products").on("value", renderProducts);
-db.ref("orders").on("value", renderOrders);
-
-// Product Form Submit
-document.getElementById("productForm").addEventListener("submit",e=>{
+document.getElementById("productForm").addEventListener("submit", e=>{
   e.preventDefault();
   const file=document.getElementById("prodImage").files[0];
   if(file){
@@ -132,7 +229,9 @@ document.getElementById("productForm").addEventListener("submit",e=>{
       addProduct(ev.target.result);
     }
     reader.readAsDataURL(file);
-  } else { addProduct(""); }
+  } else {
+    addProduct("");
+  }
 });
 
 function addProduct(imgData){
@@ -143,35 +242,52 @@ function addProduct(imgData){
     description:document.getElementById("prodDescription").value,
     image:imgData
   };
-  db.ref("products").push(newP);
+  products.push(newP);
+  localStorage.setItem("products",JSON.stringify(products));
   document.getElementById("productForm").reset();
+  renderProducts();
 }
 
-// Delete Product
-function deleteProduct(key){ db.ref("products/"+key).remove(); }
-
-// Delete Order
-function deleteOrder(key){ db.ref("orders/"+key).remove(); }
-
-// Print Invoice
-function printInvoice(key){
-  db.ref("orders/"+key).once("value").then(snap=>{
-    const o = snap.val();
-    let w=window.open('','_blank');
-    w.document.write(`<h2>Cloud Mart Invoice</h2>
-    <p>Date: ${o.date}</p>
-    <p>Name: ${o.name}</p>
-    <p>Email: ${o.email}</p>
-    <p>Phone: ${o.phone}</p>
-    <p>Product: ${o.product}</p>
-    <p>Payment: ${o.payment}</p>
-    <p>Send Number: ${o.sendNumber}</p>
-    <p>Transaction ID: ${o.trnx}</p>
-    <hr><p>Thank you for your purchase!</p>`);
-    w.print();
-  });
+function deleteProduct(i){
+  products.splice(i,1);
+  localStorage.setItem("products",JSON.stringify(products));
+  renderProducts();
 }
+
+function deleteOrder(i){
+  orders.splice(i,1);
+  localStorage.setItem("orders",JSON.stringify(orders));
+  renderOrders();
+}
+
+function printInvoice(index){
+  const o = orders[index];
+  let w = window.open('', '', 'width=800,height=600');
+  w.document.write(`
+    <html>
+    <head><title>Admin Invoice</title></head>
+    <body>
+      <h2>Cloud Mart Invoice</h2>
+      <p><b>Date:</b> ${o.date}</p>
+      <p><b>Name:</b> ${o.name}</p>
+      <p><b>Email:</b> ${o.email}</p>
+      <p><b>Phone:</b> ${o.phone}</p>
+      <p><b>Product:</b> ${o.product}</p>
+      <p><b>Payment:</b> ${o.payment}</p>
+      <p><b>Send Number:</b> ${o.sendNumber}</p>
+      <p><b>Transaction ID:</b> ${o.trnx}</p>
+      <hr>
+      <p>✅ Thank you for your purchase!</p>
+    </body>
+    </html>
+  `);
+  w.document.close();   // ✅ খুব জরুরি
+  w.print();            // ✅ এখন কাজ করবে
+}
+
+
+renderProducts();
+renderOrders();
 </script>
 </body>
 </html>
-
