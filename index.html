@@ -1,151 +1,107 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="bn">
 <head>
 <meta charset="UTF-8">
-<title>Cloud Mart - Admin</title>
+<title>Cloud Mart - Admin (Firebase)</title>
 <style>
-body {
-  font-family: Arial, sans-serif;
-  background:#f4f4f4;
-  margin:0;
-  padding:0;
-}
-header {
-  background:#333;
-  color:#fff;
-  padding:15px;
-  text-align:center;
-  font-size:22px;
-}
-.container {
-  padding:20px;
-}
-h2 {
-  margin-top:30px;
-}
-input, select, button {
-  padding:8px;
-  margin:5px 0;
-  border:1px solid #ccc;
-  border-radius:5px;
-}
-table {
-  width:100%;
-  border-collapse:collapse;
-  border-spacing:0;
-  margin-top:15px;
-}
-th, td {
-  border:1px solid #ddd;
-  padding:12px 10px;
-  text-align:center;
-  vertical-align: middle;
-}
-th {
-  background:#555;
-  color:#fff;
-  font-weight:600;
-}
-button {
-  cursor:pointer;
-  transition:0.3s;
-}
-button:hover {
-  transform:scale(1.05);
-}
-.delete {
-  background:#dc3545;
-  color:#fff;
-  border:none;
-  padding:5px 10px;
-}
-.done {
-  background:#28a745;
-  color:#fff;
-  border:none;
-  padding:5px 10px;
-}
-.print {
-  background:#007bff;
-  color:#fff;
-  border:none;
-  padding:5px 10px;
-}
-tbody tr {
-  opacity:0;
-  transform:translateY(10px);
-  transition:0.4s ease;
-}
-tbody tr.show {
-  opacity:1;
-  transform:translateY(0);
-}
+/* --- আপনার আগের স্টাইল বজায় রাখা হলো --- */
+body { font-family: Arial, sans-serif; background:#f4f4f4; margin:0; padding:0; }
+header { background:#333; color:#fff; padding:15px; text-align:center; font-size:22px; }
+.container { padding:20px; }
+h2 { margin-top:30px; }
+input, select, button, textarea { padding:8px; margin:5px 0; border:1px solid #ccc; border-radius:5px; width:100%; box-sizing:border-box; }
+table { width:100%; border-collapse:collapse; border-spacing:0; margin-top:15px; }
+th, td { border:1px solid #ddd; padding:12px 10px; text-align:center; vertical-align: middle; }
+th { background:#555; color:#fff; font-weight:600; }
+button { cursor:pointer; transition:0.3s; }
+button:hover { transform:scale(1.05); }
+.delete { background:#dc3545; color:#fff; border:none; padding:5px 10px; }
+.done { background:#28a745; color:#fff; border:none; padding:5px 10px; }
+.print { background:#007bff; color:#fff; border:none; padding:5px 10px; }
+.edit { background:#ffc107; color:#111; border:none; padding:5px 10px; }
+.form-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:10px; align-items:start; }
+img.thumb { width:50px; height:50px; object-fit:cover; border-radius:6px; }
+.notice { font-size:13px; color:#444; margin-top:6px; }
+tbody tr { opacity:0; transform:translateY(10px); transition:0.4s ease; }
+tbody tr.show { opacity:1; transform:translateY(0); }
+.small { font-size:13px; padding:6px 8px; }
 </style>
 </head>
 <body>
-<header>Cloud Mart - Admin Panel</header>
+<header>Cloud Mart - Admin Panel (Firebase)</header>
 <div class="container">
 
-<h2>Payment Method</h2>
-<label>Bkash Number:</label>
-<input type="text" id="adminBkash" placeholder="Enter Bkash Number">
-<button onclick="saveBkash()">Save</button><br>
-<label>Nagad Number:</label>
-<input type="text" id="adminNagad" placeholder="Enter Nagad Number">
-<button onclick="saveNagad()">Save</button>
+  <h2>Payment Method</h2>
+  <div style="max-width:420px;">
+    <label>Bkash Number:</label>
+    <input type="text" id="adminBkash" placeholder="Enter Bkash Number">
+    <label>Nagad Number:</label>
+    <input type="text" id="adminNagad" placeholder="Enter Nagad Number">
+    <div style="display:flex;gap:8px;">
+      <button id="savePaymentBtn" style="flex:1">Save Payment Numbers</button>
+      <button id="reloadPaymentBtn" style="flex:1">Reload From Firebase</button>
+    </div>
+    <p class="notice">Payment নম্বর change করলে অবশ্যই Save চাপুন — তা Firebase এ আপডেট হবে।</p>
+  </div>
 
-<!-- Add Product -->
-<h2>Add Product</h2>
-<form id="productForm">
-<input type="text" id="prodName" placeholder="Product Name" required>
-<input type="text" id="prodCategory" placeholder="Category" required>
-<input type="number" id="prodPrice" placeholder="Price" step="0.01" required>
-<input id="prodDescription" placeholder="Product Description" required>
-<input type="file" id="prodImage" accept="image/*">
-<button type="submit">Add Product</button>
-</form>
+  <h2>Add / Edit Product</h2>
+  <form id="productForm">
+    <div class="form-grid">
+      <input type="text" id="prodName" placeholder="Product Name" required>
+      <input type="text" id="prodCategory" placeholder="Category" required>
+      <input type="number" id="prodPrice" placeholder="Price" step="0.01" required>
+      <textarea id="prodDescription" placeholder="Product Description" rows="2" required></textarea>
+      <input type="file" id="prodImage" accept="image/*">
+      <div>
+        <button type="submit" id="addUpdateBtn">Add Product</button>
+        <button type="button" id="cancelEditBtn" style="display:none;margin-left:8px;background:#6c757d;color:#fff;">Cancel Edit</button>
+      </div>
+    </div>
+  </form>
 
-<h2>Product List</h2>
-<table>
-<thead>
-  <tr>
-    <th>Name</th>
-    <th>Category</th>
-    <th>Price</th>
-    <th>Description</th>
-    <th>Image</th>
-    <th>Action</th>
-  </tr>
-</thead>
-<tbody id="productList"></tbody>
-</table>
+  <h2>Product List</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Category</th>
+        <th>Price</th>
+        <th>Description</th>
+        <th>Image</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody id="productList"></tbody>
+  </table>
 
-<h2>Orders</h2>
-<table>
-<thead>
-  <tr>
-    <th>Product</th>
-    <th>User</th>
-    <th>Email</th>
-    <th>Phone</th>
-    <th>Payment</th>
-    <th>Send Number</th>
-    <th>Trnx ID</th>
-    <th>Date</th>
-    <th>Actions</th>
-  </tr>
-</thead>
-<tbody id="orderList"></tbody>
-</table>
+  <h2>Orders</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Product</th>
+        <th>User</th>
+        <th>Email</th>
+        <th>Phone</th>
+        <th>Payment</th>
+        <th>Send Number</th>
+        <th>Trnx ID</th>
+        <th>Date</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody id="orderList"></tbody>
+  </table>
 
 </div>
 
-<!-- Firebase SDK -->
-<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js"></script>
+<!-- Using Firebase v8 CDN (works with firebase.initializeApp style) -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
 <script>
-// Firebase Config
+/* ============================
+   Replace with your config
+   ============================ */
 const firebaseConfig = {
   apiKey: "AIzaSyCl9ENd3XOP1KeutD7s1zSiXYSuz4VIqGU",
   authDomain: "cloud-mart01.firebaseapp.com",
@@ -157,139 +113,273 @@ const firebaseConfig = {
   measurementId: "G-PXLYR809MM"
 };
 
-// Initialize Firebase
-const app = firebase.initializeApp(firebaseConfig);
+firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-// Payment Save
-function saveBkash(){
-  const bkash = document.getElementById("adminBkash").value;
-  firebase.database().ref("payment").update({ bkash: bkash });
-  alert("Bkash Number saved!");
-}
-function saveNagad(){
-  const nagad = document.getElementById("adminNagad").value;
-  firebase.database().ref("payment").update({ nagad: nagad });
-  alert("Nagad Number saved!");
-}
+/* ============================
+   DOM refs
+   ============================ */
+const prodForm = document.getElementById('productForm');
+const prodName = document.getElementById('prodName');
+const prodCategory = document.getElementById('prodCategory');
+const prodPrice = document.getElementById('prodPrice');
+const prodDescription = document.getElementById('prodDescription');
+const prodImage = document.getElementById('prodImage');
+const addUpdateBtn = document.getElementById('addUpdateBtn');
+const cancelEditBtn = document.getElementById('cancelEditBtn');
 
-// Load saved payment
-firebase.database().ref("payment").on("value",snap=>{
-  const data = snap.val();
-  if(data){
-    document.getElementById("adminBkash").value = data.bkash || "";
-    document.getElementById("adminNagad").value = data.nagad || "";
-  }
+const productList = document.getElementById('productList');
+const orderList = document.getElementById('orderList');
+
+const adminBkashInput = document.getElementById('adminBkash');
+const adminNagadInput = document.getElementById('adminNagad');
+const savePaymentBtn = document.getElementById('savePaymentBtn');
+const reloadPaymentBtn = document.getElementById('reloadPaymentBtn');
+
+/* ============================
+   State
+   ============================ */
+let editingKey = null; // যদি edit mode হয়, এখানে product key থাকবে
+
+/* ============================
+   Payment: load & save
+   ============================ */
+function loadPayment() {
+  db.ref('payment').once('value').then(snap=>{
+    const d = snap.val() || {};
+    adminBkashInput.value = d.bkash || '';
+    adminNagadInput.value = d.nagad || '';
+  }).catch(err=>{
+    console.error('Load payment err:', err);
+    alert('Payment load failed. Check console.');
+  });
+}
+savePaymentBtn.addEventListener('click', ()=>{
+  const bk = adminBkashInput.value.trim();
+  const ng = adminNagadInput.value.trim();
+  db.ref('payment').update({ bkash: bk, nagad: ng })
+    .then(()=> alert('Payment numbers saved to Firebase.'))
+    .catch(e=> { console.error(e); alert('Save failed.'); });
+});
+reloadPaymentBtn.addEventListener('click', loadPayment);
+// realtime update (optional)
+db.ref('payment').on('value', snap=>{
+  const d = snap.val() || {};
+  // update inputs only if not focused to avoid interrupt
+  if (document.activeElement !== adminBkashInput) adminBkashInput.value = d.bkash || '';
+  if (document.activeElement !== adminNagadInput) adminNagadInput.value = d.nagad || '';
 });
 
-// Product Add
-document.getElementById("productForm").addEventListener("submit", e=>{
+/* ============================
+   Products: add / edit / delete / render
+   ============================ */
+function resetForm() {
+  prodForm.reset();
+  editingKey = null;
+  addUpdateBtn.textContent = 'Add Product';
+  cancelEditBtn.style.display = 'none';
+}
+
+cancelEditBtn.addEventListener('click', resetForm);
+
+prodForm.addEventListener('submit', e=>{
   e.preventDefault();
-  const file=document.getElementById("prodImage").files[0];
-  if(file){
-    const reader=new FileReader();
-    reader.onload=function(ev){
-      addProduct(ev.target.result);
-    }
+  const name = prodName.value.trim();
+  const category = prodCategory.value.trim();
+  const price = prodPrice.value;
+  const description = prodDescription.value.trim();
+  const file = prodImage.files[0];
+
+  if (!name || !category || !price) {
+    alert('Name, Category and Price are required.');
+    return;
+  }
+
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+      const imageData = ev.target.result; // base64 dataURL
+      submitProduct({ name, category, price, description, image: imageData });
+    };
     reader.readAsDataURL(file);
   } else {
-    addProduct("");
+    // if editing and no new image provided, preserve old image (fetch it)
+    if (editingKey) {
+      db.ref('products/' + editingKey).once('value').then(snap=>{
+        const existing = snap.val() || {};
+        submitProduct({ name, category, price, description, image: existing.image || '' });
+      });
+    } else {
+      submitProduct({ name, category, price, description, image: '' });
+    }
   }
 });
 
-function addProduct(imgData){
-  const newP={
-    name:document.getElementById("prodName").value,
-    category:document.getElementById("prodCategory").value,
-    price:document.getElementById("prodPrice").value,
-    description:document.getElementById("prodDescription").value,
-    image:imgData
-  };
-  firebase.database().ref("products").push(newP);
-  document.getElementById("productForm").reset();
+function submitProduct(productObj) {
+  if (editingKey) {
+    // update
+    db.ref('products/' + editingKey).update(productObj)
+      .then(()=> {
+        alert('Product updated');
+        resetForm();
+      })
+      .catch(e=> { console.error(e); alert('Update failed'); });
+  } else {
+    // push new
+    db.ref('products').push(productObj)
+      .then(()=> {
+        alert('Product added');
+        resetForm();
+      })
+      .catch(e=> { console.error(e); alert('Add failed'); });
+  }
 }
 
-// Render Products
-const productList=document.getElementById("productList");
-firebase.database().ref("products").on("value",snapshot=>{
-  productList.innerHTML="";
+/* listen products realtime and render */
+db.ref('products').on('value', snapshot=>{
+  productList.innerHTML = '';
+  let i = 0;
   snapshot.forEach(child=>{
     const p = child.val();
     const key = child.key;
-    let tr=document.createElement("tr");
-    tr.className="show";
-    tr.innerHTML=`
-      <td>${p.name}</td>
-      <td>${p.category}</td>
-      <td>$${p.price}</td>
-      <td>${p.description}</td>
-      <td>${p.image?'<img src="'+p.image+'" width="50">':''}</td>
-      <td><button class="delete" onclick="deleteProduct('${key}')">Delete</button></td>`;
-    productList.appendChild(tr);
-  });
-});
-
-function deleteProduct(id){
-  firebase.database().ref("products/"+id).remove();
-}
-
-// Render Orders
-const orderList=document.getElementById("orderList");
-firebase.database().ref("orders").on("value",snapshot=>{
-  orderList.innerHTML="";
-  snapshot.forEach(child=>{
-    const o=child.val();
-    const key=child.key;
-    let tr=document.createElement("tr");
-    tr.className="show";
-    tr.innerHTML=`
-      <td>${o.product}</td>
-      <td>${o.name}</td>
-      <td>${o.email}</td>
-      <td>${o.phone}</td>
-      <td>${o.payment}</td>
-      <td>${o.sendNumber||''}</td>
-      <td>${o.trnx||''}</td>
-      <td>${o.date}</td>
+    const tr = document.createElement('tr');
+    tr.className = 'show';
+    tr.innerHTML = `
+      <td>${escapeHtml(p.name)}</td>
+      <td>${escapeHtml(p.category)}</td>
+      <td>$${escapeHtml(p.price)}</td>
+      <td style="max-width:260px;word-wrap:break-word;text-align:left;padding-left:10px;">${escapeHtml(p.description)}</td>
+      <td>${p.image?('<img class="thumb" src="'+p.image+'">'):'<span class="small">No image</span>'}</td>
       <td>
-        <button class="done" onclick="deleteOrder('${key}')">Done</button>
-        <button class="print" onclick="printInvoice('${key}')">Print</button>
-      </td>`;
-    orderList.appendChild(tr);
+        <button class="edit small" onclick="startEdit('${key.replace(/'/g,"\\'")}')">Edit</button>
+        <button class="delete small" onclick="deleteProduct('${key.replace(/'/g,"\\'")}')">Delete</button>
+      </td>
+    `;
+    productList.appendChild(tr);
+    setTimeout(()=> tr.classList.add('show'), 40 * i);
+    i++;
   });
 });
 
-function deleteOrder(id){
-  firebase.database().ref("orders/"+id).remove();
+/* start editing a product */
+window.startEdit = function(key) {
+  db.ref('products/' + key).once('value').then(snap=>{
+    const p = snap.val();
+    if (!p) return alert('Product not found.');
+    prodName.value = p.name || '';
+    prodCategory.value = p.category || '';
+    prodPrice.value = p.price || '';
+    prodDescription.value = p.description || '';
+    // image input can't be set programmatically for security; inform user:
+    alert('Product loaded into form. If you want to replace image, choose a new file; otherwise existing image will be preserved on update.');
+    editingKey = key;
+    addUpdateBtn.textContent = 'Update Product';
+    cancelEditBtn.style.display = 'inline-block';
+  }).catch(e=> { console.error(e); alert('Cannot load product for edit.'); });
+};
+
+/* delete product */
+window.deleteProduct = function(key) {
+  if (!confirm('Are you sure you want to delete this product?')) return;
+  db.ref('products/' + key).remove()
+    .then(()=> { /* removed */ })
+    .catch(e=> { console.error(e); alert('Delete failed'); });
+};
+
+/* escape HTML helper to avoid simple injection in table */
+function escapeHtml(text) {
+  if (text === undefined || text === null) return '';
+  return String(text)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
-// Print Invoice
-function printInvoice(id){
-  firebase.database().ref("orders/"+id).once("value").then(snap=>{
-    const o = snap.val();
-    let w = window.open('', '', 'width=800,height=600');
-    w.document.write(`
-      <html>
-      <head><title>Admin Invoice</title></head>
-      <body>
-        <h2>Cloud Mart Invoice</h2>
-        <p><b>Date:</b> ${o.date}</p>
-        <p><b>Name:</b> ${o.name}</p>
-        <p><b>Email:</b> ${o.email}</p>
-        <p><b>Phone:</b> ${o.phone}</p>
-        <p><b>Product:</b> ${o.product}</p>
-        <p><b>Payment:</b> ${o.payment}</p>
-        <p><b>Send Number:</b> ${o.sendNumber||''}</p>
-        <p><b>Transaction ID:</b> ${o.trnx||''}</p>
-        <hr>
-        <p>✅ Thank you for your purchase!</p>
-      </body>
-      </html>
-    `);
-    w.document.close();
-    w.print();
+/* ============================
+   Orders: realtime render & done (delete)
+   ============================ */
+db.ref('orders').on('value', snap=>{
+  orderList.innerHTML = '';
+  let i = 0;
+  snap.forEach(child=>{
+    const o = child.val();
+    const key = child.key;
+    const tr = document.createElement('tr');
+    tr.className = 'show';
+    tr.innerHTML = `
+      <td>${escapeHtml(o.product)}</td>
+      <td>${escapeHtml(o.name)}</td>
+      <td>${escapeHtml(o.email)}</td>
+      <td>${escapeHtml(o.phone)}</td>
+      <td>${escapeHtml(o.payment)}</td>
+      <td>${escapeHtml(o.sendNumber||'')}</td>
+      <td>${escapeHtml(o.trnx||'')}</td>
+      <td>${escapeHtml(o.date||'')}</td>
+      <td>
+        <button class="done small" onclick="markDone('${key.replace(/'/g,"\\'")}')">Done</button>
+        <button class="print small" onclick="printInvoice('${key.replace(/'/g,"\\'")}')">Print</button>
+      </td>
+    `;
+    orderList.appendChild(tr);
+    setTimeout(()=> tr.classList.add('show'), 40 * i);
+    i++;
   });
+});
+
+window.markDone = function(orderKey) {
+  if (!confirm('Mark this order as done (will remove from DB)?')) return;
+  db.ref('orders/' + orderKey).remove().catch(e=>{ console.error(e); alert('Failed to remove order.'); });
+};
+
+/* print invoice for order key */
+window.printInvoice = function(orderKey) {
+  db.ref('orders/' + orderKey).once('value').then(snap=>{
+    const o = snap.val();
+    if (!o) return alert('Order not found');
+    openPrintWindow(o);
+  }).catch(e=>{ console.error(e); alert('Failed to load order'); });
+};
+
+function openPrintWindow(order) {
+  const w = window.open('', '', 'width=800,height=600');
+  const html = `
+    <html><head><title>Admin Invoice</title>
+    <style>body{font-family:Arial;padding:20px} h2{text-align:center} p{margin:6px 0}</style>
+    </head><body>
+    <h2>Cloud Mart Invoice</h2>
+    <p><b>Date:</b> ${escapeHtml(order.date || '')}</p>
+    <p><b>Name:</b> ${escapeHtml(order.name || '')}</p>
+    <p><b>Email:</b> ${escapeHtml(order.email || '')}</p>
+    <p><b>Phone:</b> ${escapeHtml(order.phone || '')}</p>
+    <p><b>Product:</b> ${escapeHtml(order.product || '')}</p>
+    <p><b>Payment:</b> ${escapeHtml(order.payment || '')}</p>
+    <p><b>Send Number:</b> ${escapeHtml(order.sendNumber || '')}</p>
+    <p><b>Transaction ID:</b> ${escapeHtml(order.trnx || '')}</p>
+    <hr><p style="text-align:center">✅ Thank you for your purchase!</p>
+    </body></html>`;
+  w.document.write(html);
+  w.document.close();
+  w.print();
 }
+
+/* ============================
+   Init: load payment & initial render (listeners already set)
+   ============================ */
+loadPayment();
+
+/* ============================
+   Helpful: Clear form on page refresh (so edit state not persisted accidentally)
+   ============================ */
+window.addEventListener('beforeunload', ()=> {
+  // optional: reset editing key
+  // not necessary, but keep clean
+});
+
+/* ============================
+   End
+   ============================ */
 </script>
 </body>
 </html>
