@@ -17,8 +17,12 @@ header {
   text-align:center;
   font-size:22px;
 }
-.container { padding:20px; }
-h2 { margin-top:30px; }
+.container {
+  padding:20px;
+}
+h2 {
+  margin-top:30px;
+}
 input, select, button {
   padding:8px;
   margin:5px 0;
@@ -28,6 +32,7 @@ input, select, button {
 table {
   width:100%;
   border-collapse:collapse;
+  border-spacing:0;
   margin-top:15px;
 }
 th, td {
@@ -45,13 +50,36 @@ button {
   cursor:pointer;
   transition:0.3s;
 }
-button:hover { transform:scale(1.05); }
-.delete { background:#dc3545; color:#fff; border:none; padding:5px 10px; }
-.done   { background:#28a745; color:#fff; border:none; padding:5px 10px; }
-.print  { background:#007bff; color:#fff; border:none; padding:5px 10px; }
-tbody tr { opacity:0; transform:translateY(10px); transition:0.4s ease; }
-tbody tr.show { opacity:1; transform:translateY(0); }
-img.small { width:50px; height:auto; border-radius:4px; }
+button:hover {
+  transform:scale(1.05);
+}
+.delete {
+  background:#dc3545;
+  color:#fff;
+  border:none;
+  padding:5px 10px;
+}
+.done {
+  background:#28a745;
+  color:#fff;
+  border:none;
+  padding:5px 10px;
+}
+.print {
+  background:#007bff;
+  color:#fff;
+  border:none;
+  padding:5px 10px;
+}
+tbody tr {
+  opacity:0;
+  transform:translateY(10px);
+  transition:0.4s ease;
+}
+tbody tr.show {
+  opacity:1;
+  transform:translateY(0);
+}
 </style>
 </head>
 <body>
@@ -69,12 +97,12 @@ img.small { width:50px; height:auto; border-radius:4px; }
 <!-- Add Product -->
 <h2>Add Product</h2>
 <form id="productForm">
-  <input type="text" id="prodName" placeholder="Product Name" required>
-  <input type="text" id="prodCategory" placeholder="Category" required>
-  <input type="number" id="prodPrice" placeholder="Price" step="0.01" required>
-  <input id="prodDescription" placeholder="Product Description" required>
-  <input type="file" id="prodImage" accept="image/*">
-  <button type="submit">Add Product</button>
+<input type="text" id="prodName" placeholder="Product Name" required>
+<input type="text" id="prodCategory" placeholder="Category" required>
+<input type="number" id="prodPrice" placeholder="Price" step="0.01" required>
+<input id="prodDescription" placeholder="Product Description" required>
+<input type="file" id="prodImage" accept="image/*">
+<button type="submit">Add Product</button>
 </form>
 
 <h2>Product List</h2>
@@ -112,184 +140,156 @@ img.small { width:50px; height:auto; border-radius:4px; }
 
 </div>
 
-<!-- Firebase Realtime Database -->
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import {
-    getDatabase,
-    ref,
-    push,
-    set,
-    onValue,
-    remove,
-    get
-  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js"></script>
 
-  // তোমার Firebase Config
-  const firebaseConfig = {
-    apiKey: "AIzaSyCl9ENd3XOP1KeutD7s1zSiXYSuz4VIqGU",
-    authDomain: "cloud-mart01.firebaseapp.com",
-    databaseURL: "https://cloud-mart01-default-rtdb.firebaseio.com",
-    projectId: "cloud-mart01",
-    storageBucket: "cloud-mart01.firebasestorage.app",
-    messagingSenderId: "656495467691",
-    appId: "1:656495467691:web:b0c0f7356b36af5de12bee",
-    measurementId: "G-PXLYR809MM"
+<script>
+// Firebase Config
+const firebaseConfig = {
+  apiKey: "AIzaSyCl9ENd3XOP1KeutD7s1zSiXYSuz4VIqGU",
+  authDomain: "cloud-mart01.firebaseapp.com",
+  databaseURL: "https://cloud-mart01-default-rtdb.firebaseio.com",
+  projectId: "cloud-mart01",
+  storageBucket: "cloud-mart01.firebasestorage.app",
+  messagingSenderId: "656495467691",
+  appId: "1:656495467691:web:b0c0f7356b36af5de12bee",
+  measurementId: "G-PXLYR809MM"
+};
+
+// Initialize Firebase
+const app = firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// Payment Save
+function saveBkash(){
+  const bkash = document.getElementById("adminBkash").value;
+  firebase.database().ref("payment").update({ bkash: bkash });
+  alert("Bkash Number saved!");
+}
+function saveNagad(){
+  const nagad = document.getElementById("adminNagad").value;
+  firebase.database().ref("payment").update({ nagad: nagad });
+  alert("Nagad Number saved!");
+}
+
+// Load saved payment
+firebase.database().ref("payment").on("value",snap=>{
+  const data = snap.val();
+  if(data){
+    document.getElementById("adminBkash").value = data.bkash || "";
+    document.getElementById("adminNagad").value = data.nagad || "";
+  }
+});
+
+// Product Add
+document.getElementById("productForm").addEventListener("submit", e=>{
+  e.preventDefault();
+  const file=document.getElementById("prodImage").files[0];
+  if(file){
+    const reader=new FileReader();
+    reader.onload=function(ev){
+      addProduct(ev.target.result);
+    }
+    reader.readAsDataURL(file);
+  } else {
+    addProduct("");
+  }
+});
+
+function addProduct(imgData){
+  const newP={
+    name:document.getElementById("prodName").value,
+    category:document.getElementById("prodCategory").value,
+    price:document.getElementById("prodPrice").value,
+    description:document.getElementById("prodDescription").value,
+    image:imgData
   };
+  firebase.database().ref("products").push(newP);
+  document.getElementById("productForm").reset();
+}
 
-  // Firebase init
-  const app = initializeApp(firebaseConfig);
-  const db = getDatabase(app);
-
-  // DOM
-  const productList = document.getElementById("productList");
-  const orderList   = document.getElementById("orderList");
-
-  // --- Payment Numbers ---
-  const paymentRef = ref(db, "payment");
-  onValue(paymentRef, (snap) => {
-    const p = snap.val() || {};
-    document.getElementById("adminBkash").value = p.bkash || "";
-    document.getElementById("adminNagad").value = p.nagad || "";
+// Render Products
+const productList=document.getElementById("productList");
+firebase.database().ref("products").on("value",snapshot=>{
+  productList.innerHTML="";
+  snapshot.forEach(child=>{
+    const p = child.val();
+    const key = child.key;
+    let tr=document.createElement("tr");
+    tr.className="show";
+    tr.innerHTML=`
+      <td>${p.name}</td>
+      <td>${p.category}</td>
+      <td>$${p.price}</td>
+      <td>${p.description}</td>
+      <td>${p.image?'<img src="'+p.image+'" width="50">':''}</td>
+      <td><button class="delete" onclick="deleteProduct('${key}')">Delete</button></td>`;
+    productList.appendChild(tr);
   });
+});
 
-  async function saveBkash() {
-    const val = document.getElementById("adminBkash").value;
-    await set(ref(db, "payment/bkash"), val);
-    alert("Bkash Number Saved!");
-  }
-  async function saveNagad() {
-    const val = document.getElementById("adminNagad").value;
-    await set(ref(db, "payment/nagad"), val);
-    alert("Nagad Number Saved!");
-  }
-  window.saveBkash = saveBkash;
-  window.saveNagad = saveNagad;
+function deleteProduct(id){
+  firebase.database().ref("products/"+id).remove();
+}
 
-  // --- Add Product ---
-  document.getElementById("productForm").addEventListener("submit", (e) => {
-    e.preventDefault();
-    const file = document.getElementById("prodImage").files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (ev) => { addProduct(ev.target.result); };
-      reader.readAsDataURL(file);
-    } else {
-      addProduct("");
-    }
+// Render Orders
+const orderList=document.getElementById("orderList");
+firebase.database().ref("orders").on("value",snapshot=>{
+  orderList.innerHTML="";
+  snapshot.forEach(child=>{
+    const o=child.val();
+    const key=child.key;
+    let tr=document.createElement("tr");
+    tr.className="show";
+    tr.innerHTML=`
+      <td>${o.product}</td>
+      <td>${o.name}</td>
+      <td>${o.email}</td>
+      <td>${o.phone}</td>
+      <td>${o.payment}</td>
+      <td>${o.sendNumber||''}</td>
+      <td>${o.trnx||''}</td>
+      <td>${o.date}</td>
+      <td>
+        <button class="done" onclick="deleteOrder('${key}')">Done</button>
+        <button class="print" onclick="printInvoice('${key}')">Print</button>
+      </td>`;
+    orderList.appendChild(tr);
   });
+});
 
-  async function addProduct(imgData) {
-    const newP = {
-      name: document.getElementById("prodName").value,
-      category: document.getElementById("prodCategory").value,
-      price: document.getElementById("prodPrice").value,
-      description: document.getElementById("prodDescription").value,
-      image: imgData
-    };
-    await set(push(ref(db, "products")), newP);
-    document.getElementById("productForm").reset();
-  }
+function deleteOrder(id){
+  firebase.database().ref("orders/"+id).remove();
+}
 
-  // --- Show Products (Realtime) ---
-  onValue(ref(db, "products"), (snap) => {
-    productList.innerHTML = "";
-    const data = snap.val() || {};
-    let i = 0;
-    for (const id in data) {
-      const p = data[id];
-      const tr = document.createElement("tr");
-      tr.className = "show";
-      const imgHtml = p.image ? `<img class="small" src="${p.image}">` : "";
-      tr.innerHTML = `
-        <td>${escapeHtml(p.name||"")}</td>
-        <td>${escapeHtml(p.category||"")}</td>
-        <td>$${escapeHtml(p.price||"")}</td>
-        <td>${escapeHtml(p.description||"")}</td>
-        <td>${imgHtml}</td>
-        <td><button class="delete" onclick="deleteProduct('${id}')">Delete</button></td>
-      `;
-      productList.appendChild(tr);
-      setTimeout(()=>tr.classList.add("show"), 100 * i++);
-    }
-  });
-
-  async function deleteProduct(id) {
-    if (!confirm("Delete this product?")) return;
-    await remove(ref(db, "products/"+id));
-  }
-  window.deleteProduct = deleteProduct;
-
-  // --- Orders (Realtime) ---
-  onValue(ref(db, "orders"), (snap) => {
-    orderList.innerHTML = "";
-    const data = snap.val() || {};
-    let i = 0;
-    for (const id in data) {
-      const o = data[id];
-      const tr = document.createElement("tr");
-      tr.className = "show";
-      tr.innerHTML = `
-        <td>${escapeHtml(o.product||"")}</td>
-        <td>${escapeHtml(o.name||"")}</td>
-        <td>${escapeHtml(o.email||"")}</td>
-        <td>${escapeHtml(o.phone||"")}</td>
-        <td>${escapeHtml(o.payment||"")}</td>
-        <td>${escapeHtml(o.sendNumber||"")}</td>
-        <td>${escapeHtml(o.trnx||"")}</td>
-        <td>${escapeHtml(o.date||"")}</td>
-        <td>
-          <button class="done" onclick="deleteOrder('${id}')">Done</button>
-          <button class="print" onclick="printInvoice('${id}')">Print</button>
-        </td>
-      `;
-      orderList.appendChild(tr);
-      setTimeout(()=>tr.classList.add("show"), 100 * i++);
-    }
-  });
-
-  async function deleteOrder(id) {
-    if (!confirm("Mark this order as Done?")) return;
-    await remove(ref(db, "orders/"+id));
-  }
-  window.deleteOrder = deleteOrder;
-
-  async function printInvoice(id) {
-    const snap = await get(ref(db, "orders/"+id));
+// Print Invoice
+function printInvoice(id){
+  firebase.database().ref("orders/"+id).once("value").then(snap=>{
     const o = snap.val();
-    if (!o) return alert("Order not found");
-    const w = window.open('', '', 'width=800,height=600');
+    let w = window.open('', '', 'width=800,height=600');
     w.document.write(`
-      <html><head><title>Invoice</title>
-      <style>body{font-family:Arial;padding:20px;}h2{text-align:center;}</style>
-      </head><body>
-      <h2>Cloud Mart Invoice</h2>
-      <p><b>Date:</b> ${escapeHtml(o.date||"")}</p>
-      <p><b>Name:</b> ${escapeHtml(o.name||"")}</p>
-      <p><b>Email:</b> ${escapeHtml(o.email||"")}</p>
-      <p><b>Phone:</b> ${escapeHtml(o.phone||"")}</p>
-      <p><b>Product:</b> ${escapeHtml(o.product||"")}</p>
-      <p><b>Payment:</b> ${escapeHtml(o.payment||"")}</p>
-      <p><b>Send Number:</b> ${escapeHtml(o.sendNumber||"")}</p>
-      <p><b>Transaction ID:</b> ${escapeHtml(o.trnx||"")}</p>
-      <hr><p>✅ Thank you!</p>
-      </body></html>
+      <html>
+      <head><title>Admin Invoice</title></head>
+      <body>
+        <h2>Cloud Mart Invoice</h2>
+        <p><b>Date:</b> ${o.date}</p>
+        <p><b>Name:</b> ${o.name}</p>
+        <p><b>Email:</b> ${o.email}</p>
+        <p><b>Phone:</b> ${o.phone}</p>
+        <p><b>Product:</b> ${o.product}</p>
+        <p><b>Payment:</b> ${o.payment}</p>
+        <p><b>Send Number:</b> ${o.sendNumber||''}</p>
+        <p><b>Transaction ID:</b> ${o.trnx||''}</p>
+        <hr>
+        <p>✅ Thank you for your purchase!</p>
+      </body>
+      </html>
     `);
     w.document.close();
     w.print();
-  }
-  window.printInvoice = printInvoice;
-
-  function escapeHtml(str) {
-    if (!str) return "";
-    return String(str)
-      .replaceAll("&","&amp;")
-      .replaceAll("<","&lt;")
-      .replaceAll(">","&gt;")
-      .replaceAll('"',"&quot;")
-      .replaceAll("'","&#39;");
-  }
-
+  });
+}
 </script>
 </body>
 </html>
