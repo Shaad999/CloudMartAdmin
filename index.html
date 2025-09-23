@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <title>Cloud Mart - Admin (Firebase)</title>
 <style>
-/* আগের style অপরিবর্তিত রাখা হলো */
 body { font-family: Arial, sans-serif; background:#f4f4f4; margin:0; padding:0; }
 header { background:#333; color:#fff; padding:15px; text-align:center; font-size:22px; }
 .container { padding:20px; }
@@ -26,6 +25,21 @@ img.thumb { width:50px; height:50px; object-fit:cover; border-radius:6px; }
 <header>Cloud Mart - Admin Panel (Firebase)</header>
 <div class="container">
 
+  <!-- Payment Section -->
+  <h2>Payment Method</h2>
+  <div style="max-width:420px;">
+    <label>Bkash Number:</label>
+    <input type="text" id="adminBkash" placeholder="Enter Bkash Number">
+    <label>Nagad Number:</label>
+    <input type="text" id="adminNagad" placeholder="Enter Nagad Number">
+    <div style="display:flex;gap:8px;">
+      <button id="savePaymentBtn" style="flex:1">Save Payment Numbers</button>
+      <button id="reloadPaymentBtn" style="flex:1">Reload From Firebase</button>
+    </div>
+    <p class="notice">Payment নম্বর change করলে অবশ্যই Save চাপুন — তা Firebase এ আপডেট হবে।</p>
+  </div>
+
+  <!-- Products Section -->
   <h2>Add / Edit Product</h2>
   <form id="productForm">
     <input type="text" id="prodName" placeholder="Product Name" required>
@@ -39,10 +53,23 @@ img.thumb { width:50px; height:50px; object-fit:cover; border-radius:6px; }
   <h2>Product List</h2>
   <table>
     <thead>
-      <tr><th>Name</th><th>Category</th><th>Price</th><th>Description</th><th>Image</th></tr>
+      <tr><th>Name</th><th>Category</th><th>Price</th><th>Description</th><th>Image</th><th>Action</th></tr>
     </thead>
     <tbody id="productList"></tbody>
   </table>
+
+  <!-- Orders Section -->
+  <h2>Orders</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Product</th><th>User</th><th>Email</th><th>Phone</th>
+        <th>Payment</th><th>Send Number</th><th>Trnx ID</th><th>Date</th><th>Action</th>
+      </tr>
+    </thead>
+    <tbody id="orderList"></tbody>
+  </table>
+
 </div>
 
 <!-- Firebase SDK -->
@@ -51,12 +78,13 @@ img.thumb { width:50px; height:50px; object-fit:cover; border-radius:6px; }
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
 
 <script>
+/* Firebase Config */
 const firebaseConfig = {
   apiKey: "AIzaSyCl9ENd3XOP1KeutD7s1zSiXYSuz4VIqGU",
   authDomain: "cloud-mart01.firebaseapp.com",
   databaseURL: "https://cloud-mart01-default-rtdb.firebaseio.com",
   projectId: "cloud-mart01",
-  storageBucket: "cloud-mart01.appspot.com",   // এখানে storageBucket ঠিক করা হলো
+  storageBucket: "cloud-mart01.appspot.com",
   messagingSenderId: "656495467691",
   appId: "1:656495467691:web:b0c0f7356b36af5de12bee"
 };
@@ -65,6 +93,26 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 const storage = firebase.storage();
 
+/* Payment Section */
+const adminBkashInput = document.getElementById('adminBkash');
+const adminNagadInput = document.getElementById('adminNagad');
+document.getElementById('savePaymentBtn').onclick = ()=>{
+  db.ref('payment').update({ 
+    bkash: adminBkashInput.value, 
+    nagad: adminNagadInput.value 
+  }).then(()=>alert("Payment Numbers Saved!"));
+};
+document.getElementById('reloadPaymentBtn').onclick = loadPayment;
+function loadPayment(){
+  db.ref('payment').once('value').then(snap=>{
+    const d = snap.val() || {};
+    adminBkashInput.value = d.bkash || "";
+    adminNagadInput.value = d.nagad || "";
+  });
+}
+loadPayment();
+
+/* Product Section */
 const prodForm = document.getElementById('productForm');
 const prodList = document.getElementById('productList');
 const prodName = document.getElementById('prodName');
@@ -72,6 +120,7 @@ const prodCategory = document.getElementById('prodCategory');
 const prodPrice = document.getElementById('prodPrice');
 const prodDescription = document.getElementById('prodDescription');
 const prodImage = document.getElementById('prodImage');
+let editingKey = null;
 
 prodForm.addEventListener('submit', e=>{
   e.preventDefault();
@@ -87,25 +136,32 @@ prodForm.addEventListener('submit', e=>{
     const storageRef = storage.ref('products/' + Date.now() + '_' + file.name);
     storageRef.put(file).then(snapshot=>{
       snapshot.ref.getDownloadURL().then(url=>{
-        saveProduct({name, category, price, description, image:url});
+        saveOrUpdateProduct({name, category, price, description, image:url});
       });
-    }).catch(err=>alert("Image upload failed: " + err));
+    });
   } else {
-    saveProduct({name, category, price, description, image:""});
+    saveOrUpdateProduct({name, category, price, description, image:""});
   }
 });
 
-function saveProduct(obj){
-  db.ref('products').push(obj).then(()=>{
-    alert("Product Added Successfully");
-    prodForm.reset();
-  }).catch(e=>alert("Failed: "+e));
+function saveOrUpdateProduct(obj){
+  if(editingKey){
+    db.ref('products/'+editingKey).update(obj).then(()=>{
+      alert("Product Updated");
+      prodForm.reset(); editingKey=null;
+    });
+  } else {
+    db.ref('products').push(obj).then(()=>{
+      alert("Product Added");
+      prodForm.reset();
+    });
+  }
 }
 
 db.ref('products').on('value', snap=>{
   prodList.innerHTML = "";
   snap.forEach(child=>{
-    const p = child.val();
+    const p = child.val(); const key=child.key;
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>${p.name}</td>
@@ -113,10 +169,87 @@ db.ref('products').on('value', snap=>{
       <td>${p.price}</td>
       <td>${p.description}</td>
       <td>${p.image? `<img class="thumb" src="${p.image}">` : 'No Image'}</td>
+      <td>
+        <button class="edit" onclick="editProduct('${key}')">Edit</button>
+        <button class="delete" onclick="deleteProduct('${key}')">Delete</button>
+      </td>
     `;
     prodList.appendChild(tr);
   });
 });
+
+window.editProduct = function(key){
+  db.ref('products/'+key).once('value').then(snap=>{
+    const p = snap.val(); if(!p) return;
+    prodName.value = p.name; prodCategory.value=p.category;
+    prodPrice.value=p.price; prodDescription.value=p.description;
+    editingKey=key; alert("Edit mode ON. Update and save!");
+  });
+};
+window.deleteProduct = function(key){
+  if(confirm("Delete this product?")) db.ref('products/'+key).remove();
+};
+
+/* Orders Section */
+const orderList = document.getElementById('orderList');
+db.ref('orders').on('value', snap=>{
+  orderList.innerHTML = "";
+  snap.forEach(child=>{
+    const o = child.val(); const key=child.key;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${o.product}</td>
+      <td>${o.name}</td>
+      <td>${o.email}</td>
+      <td>${o.phone}</td>
+      <td>${o.payment}</td>
+      <td>${o.sendNumber||''}</td>
+      <td>${o.trnx||''}</td>
+      <td>${o.date||''}</td>
+      <td>
+        <button class="done" onclick="markDone('${key}')">Done</button>
+        <button class="print" onclick="printInvoice('${key}')">Print</button>
+      </td>
+    `;
+    orderList.appendChild(tr);
+  });
+});
+
+window.markDone = function(orderKey){
+  if(!confirm("Mark this order as done?")) return;
+  db.ref('orders/'+orderKey).once('value').then(snap=>{
+    const order = snap.val(); if(!order) return;
+    db.ref('completedOrders').push(order);   // move to completedOrders
+    db.ref('orders/'+orderKey).remove();     // delete from orders
+    trimCompletedOrders();
+  });
+};
+
+function trimCompletedOrders(){
+  db.ref('completedOrders').once('value').then(snap=>{
+    const all=[]; snap.forEach(c=>all.push({key:c.key,val:c.val()}));
+    if(all.length>5){
+      const extra = all.slice(0, all.length-5);
+      extra.forEach(e=> db.ref('completedOrders/'+e.key).remove());
+    }
+  });
+}
+
+window.printInvoice = function(orderKey){
+  db.ref('orders/'+orderKey).once('value').then(snap=>{
+    const o = snap.val(); if(!o) return;
+    const w = window.open('', '', 'width=800,height=600');
+    w.document.write(`<h2>Cloud Mart Invoice</h2>
+    <p><b>Date:</b> ${o.date||''}</p>
+    <p><b>Name:</b> ${o.name||''}</p>
+    <p><b>Email:</b> ${o.email||''}</p>
+    <p><b>Phone:</b> ${o.phone||''}</p>
+    <p><b>Product:</b> ${o.product||''}</p>
+    <p><b>Payment:</b> ${o.payment||''}</p>
+    <p><b>Transaction:</b> ${o.trnx||''}</p>`);
+    w.document.close(); w.print();
+  });
+}
 </script>
 </body>
 </html>
