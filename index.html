@@ -17,9 +17,9 @@ h2 { margin-top:30px; }
 
 /* Horizontal Product Form */
 #productForm { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:20px; align-items:flex-start; }
-#productForm input[type=text], #productForm input[type=number], #productForm textarea { flex:1; padding:8px; border:1px solid #ccc; border-radius:5px; }
+#productForm input[type=text], #productForm input[type=number], #productForm textarea, #productForm input[type=file] {
+  flex:1; padding:8px; border:1px solid #ccc; border-radius:5px; }
 #productForm textarea { height:50px; }
-#productForm input[type=file] { flex-basis:100%; }
 #imagePreview { width:80px; height:80px; object-fit:cover; border-radius:6px; border:1px solid #ccc; }
 #addUpdateBtn { flex-basis:100%; padding:10px; background:#007bff; color:#fff; border:none; border-radius:5px; cursor:pointer; transition:0.3s; }
 #addUpdateBtn:hover { transform:scale(1.05); }
@@ -67,8 +67,8 @@ img.thumb { width:50px; height:50px; object-fit:cover; border-radius:6px; }
   <input type="text" id="prodCategory" placeholder="Category" required>
   <input type="number" id="prodPrice" placeholder="Price" step="0.01" required>
   <textarea id="prodDescription" placeholder="Description" required></textarea>
-  <input type="file" id="prodImage" accept="image/*">
-  <img id="imagePreview" src="" alt="Image Preview">
+  <input type="file" id="prodImage" accept="image/*" required>
+  <input type="text" id="imagePreviewInput" placeholder="Image Preview" readonly style="flex:1; padding:8px; border:1px solid #ccc; border-radius:5px;">
   <button type="submit" id="addUpdateBtn">Add Product</button>
 </form>
 
@@ -138,13 +138,13 @@ const prodCategory = document.getElementById('prodCategory');
 const prodPrice = document.getElementById('prodPrice');
 const prodDescription = document.getElementById('prodDescription');
 const prodImage = document.getElementById('prodImage');
-const imagePreview = document.getElementById('imagePreview');
+const imagePreviewInput = document.getElementById('imagePreviewInput');
 let editingKey = null;
 
 prodImage.addEventListener('change', ()=>{
   const file = prodImage.files[0];
-  if(file) imagePreview.src = URL.createObjectURL(file);
-  else imagePreview.src = "";
+  if(file) imagePreviewInput.value = file.name;
+  else imagePreviewInput.value = "";
 });
 
 form.addEventListener('submit', async e=>{
@@ -186,7 +186,7 @@ form.addEventListener('submit', async e=>{
     }
 
     form.reset();
-    imagePreview.src = "";
+    imagePreviewInput.value = "";
   } catch(err){
     alert("Error: "+err.message);
   }
@@ -221,7 +221,7 @@ window.editProduct = async function(key){
   prodCategory.value = p.category;
   prodPrice.value = p.price;
   prodDescription.value = p.description;
-  imagePreview.src = p.image || "";
+  imagePreviewInput.value = p.image ? "Uploaded" : "";
   editingKey = key;
 };
 
@@ -284,8 +284,7 @@ window.printInvoice = async function(orderKey){
     <p><b>Phone:</b> ${o.phone||''}</p>
     <p><b>Product:</b> ${o.product||''}</p>
     <p><b>Payment:</b> ${o.payment||''}</p>
-    <p><b>Transaction:</b> ${o.trnx||''}</p>`);
-  w.document.close(); w.print();
+    <p><b>Transaction:</b> ${o.trnx||''}</p>`); w.document.close(); w.print();
 };
 </script>
 </body>
