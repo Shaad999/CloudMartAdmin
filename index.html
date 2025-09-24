@@ -2,296 +2,281 @@
 <html lang="bn">
 <head>
 <meta charset="UTF-8">
-<title>Cloud Mart - Admin Panel</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cloud Mart - Admin (Firebase)</title>
 <style>
 body { font-family: Arial, sans-serif; background:#f4f4f4; margin:0; padding:0; }
 header { background:#333; color:#fff; padding:15px; text-align:center; font-size:22px; }
-.container { padding:20px; max-width:1200px; margin:auto; }
+.container { padding:20px; }
 h2 { margin-top:30px; }
-.notice { font-size:12px; color:#555; }
-
-/* Payment Section */
-.payment-section { max-width:420px; margin-bottom:30px; }
-.payment-section input { width:100%; padding:8px; margin:5px 0; border:1px solid #ccc; border-radius:5px; }
-
-/* Horizontal Product Form */
-#productForm { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:20px; align-items:flex-start; }
-#productForm input[type=text], #productForm input[type=number], #productForm textarea, #productForm input[type=file] {
-  flex:1; padding:8px; border:1px solid #ccc; border-radius:5px; }
-#productForm textarea { height:50px; }
-#imagePreview { width:80px; height:80px; object-fit:cover; border-radius:6px; border:1px solid #ccc; }
-#addUpdateBtn { flex-basis:100%; padding:10px; background:#007bff; color:#fff; border:none; border-radius:5px; cursor:pointer; transition:0.3s; }
-#addUpdateBtn:hover { transform:scale(1.05); }
-
-table { width:100%; border-collapse:collapse; margin-top:15px; font-size:14px; }
-th, td { border:1px solid #ddd; padding:10px; text-align:center; vertical-align:middle; }
-th { background:#555; color:#fff; }
+input, select, button, textarea { padding:8px; margin:5px 0; border:1px solid #ccc; border-radius:5px; width:100%; box-sizing:border-box; }
+table { width:100%; border-collapse:collapse; border-spacing:0; margin-top:15px; }
+th, td { border:1px solid #ddd; padding:12px 10px; text-align:center; vertical-align: middle; }
+th { background:#555; color:#fff; font-weight:600; }
 button { cursor:pointer; transition:0.3s; }
 button:hover { transform:scale(1.05); }
-.delete { background:#dc3545; color:#fff; border:none; padding:5px 10px; border-radius:4px; }
-.done { background:#28a745; color:#fff; border:none; padding:5px 10px; border-radius:4px; }
-.print { background:#007bff; color:#fff; border:none; padding:5px 10px; border-radius:4px; }
-.edit { background:#ffc107; color:#111; border:none; padding:5px 10px; border-radius:4px; }
+.delete { background:#dc3545; color:#fff; border:none; padding:5px 10px; }
+.done { background:#28a745; color:#fff; border:none; padding:5px 10px; }
+.print { background:#007bff; color:#fff; border:none; padding:5px 10px; }
+.edit { background:#ffc107; color:#111; border:none; padding:5px 10px; }
+.form-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:10px; align-items:start; }
 img.thumb { width:50px; height:50px; object-fit:cover; border-radius:6px; }
-
-/* Responsive */
-@media(max-width:768px){
-  #productForm { flex-direction:column; }
-  #productForm input, #productForm textarea { flex-basis:100%; }
-}
+.notice { font-size:13px; color:#444; margin-top:6px; }
+tbody tr { opacity:0; transform:translateY(10px); transition:0.4s ease; }
+tbody tr.show { opacity:1; transform:translateY(0); }
+.small { font-size:13px; padding:6px 8px; }
+select.statusSelect { padding:4px; font-size:13px; }
 </style>
 </head>
 <body>
 <header>Cloud Mart - Admin Panel (Firebase)</header>
 <div class="container">
 
-<!-- Payment Section -->
-<h2>Payment Method</h2>
-<div class="payment-section">
-  <label>Bkash Number:</label>
-  <input type="text" id="adminBkash" placeholder="Enter Bkash Number">
-  <label>Nagad Number:</label>
-  <input type="text" id="adminNagad" placeholder="Enter Nagad Number">
-  <div style="display:flex;gap:8px;">
-    <button id="savePaymentBtn" style="flex:1">Save Payment Numbers</button>
-    <button id="reloadPaymentBtn" style="flex:1">Reload From Firebase</button>
+  <h2>Payment Method</h2>
+  <div style="max-width:420px;">
+    <label>Bkash Number:</label>
+    <input type="text" id="adminBkash" placeholder="Enter Bkash Number">
+    <label>Nagad Number:</label>
+    <input type="text" id="adminNagad" placeholder="Enter Nagad Number">
+    <div style="display:flex;gap:8px;">
+      <button id="savePaymentBtn" style="flex:1">Save Payment Numbers</button>
+      <button id="reloadPaymentBtn" style="flex:1">Reload From Firebase</button>
+    </div>
+    <p class="notice">Payment নম্বর change করলে অবশ্যই Save চাপুন — তা Firebase এ আপডেট হবে।</p>
   </div>
-  <p class="notice">Payment নম্বর change করলে অবশ্যই Save চাপুন — তা Firebase এ আপডেট হবে।</p>
+
+  <h2>Add / Edit Product</h2>
+  <form id="productForm">
+    <div class="form-grid">
+      <input type="text" id="prodName" placeholder="Product Name" required>
+      <input type="text" id="prodCategory" placeholder="Category" required>
+      <input type="number" id="prodPrice" placeholder="Price" step="0.01" required>
+      <input id="prodDescription" placeholder="Product Description" rows="2" required>
+      <input type="file" id="prodImage" accept="image/*">
+      <div>
+        <button type="submit" id="addUpdateBtn">Add Product</button>
+        <button type="button" id="cancelEditBtn" style="display:none;margin-left:8px;background:#6c757d;color:#fff;">Cancel Edit</button>
+      </div>
+    </div>
+  </form>
+
+  <h2>Product List</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Category</th>
+        <th>Price</th>
+        <th>Description</th>
+        <th>Image</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody id="productList"></tbody>
+  </table>
+
+  <h2>Orders</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Product</th>
+        <th>User</th>
+        <th>Email</th>
+        <th>Phone</th>
+        <th>Payment</th>
+        <th>Send Number</th>
+        <th>Trnx ID</th>
+        <th>Date</th>
+        <th>Status</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody id="orderList"></tbody>
+  </table>
+
 </div>
 
-<!-- Product Section -->
-<h2>Add / Edit Product</h2>
-<form id="productForm">
-  <input type="text" id="prodName" placeholder="Product Name" required>
-  <input type="text" id="prodCategory" placeholder="Category" required>
-  <input type="number" id="prodPrice" placeholder="Price" step="0.01" required>
-  <input id="prodDescription" placeholder="Description" required>
-  <input type="file" id="prodImage" accept="image/*">
-  <input type="text" id="imagePreviewInput" placeholder="Image Preview" readonly style="flex:1; padding:8px; border:1px solid #ccc; border-radius:5px;">
-  <button type="submit" id="addUpdateBtn">Add Product</button>
-</form>
-
-<h2>Product List</h2>
-<table>
-  <thead>
-    <tr><th>Name</th><th>Category</th><th>Price</th><th>Description</th><th>Image</th><th>Action</th></tr>
-  </thead>
-  <tbody id="productList"></tbody>
-</table>
-
-<!-- Orders Section -->
-<h2>Orders</h2>
-<table>
-  <thead>
-    <tr>
-      <th>Product</th><th>User</th><th>Email</th><th>Phone</th>
-      <th>Payment</th><th>Send Number</th><th>Trnx ID</th><th>Date</th><th>Action</th>
-    </tr>
-  </thead>
-  <tbody id="orderList"></tbody>
-</table>
-
-</div>
-
-<!-- Firebase SDK -->
+<!-- Firebase v8 -->
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
 
 <script>
-// Firebase Config
 const firebaseConfig = {
   apiKey: "AIzaSyCl9ENd3XOP1KeutD7s1zSiXYSuz4VIqGU",
   authDomain: "cloud-mart01.firebaseapp.com",
   databaseURL: "https://cloud-mart01-default-rtdb.firebaseio.com",
   projectId: "cloud-mart01",
-  storageBucket: "cloud-mart01.appspot.com",
+  storageBucket: "cloud-mart01.firebasestorage.app",
   messagingSenderId: "656495467691",
   appId: "1:656495467691:web:b0c0f7356b36af5de12bee",
   measurementId: "G-PXLYR809MM"
 };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
-const storage = firebase.storage();
 
-/* Payment Section */
-const adminBkashInput = document.getElementById('adminBkash');
-const adminNagadInput = document.getElementById('adminNagad');
-document.getElementById('savePaymentBtn').onclick = ()=>{
-  db.ref('payment').set({ bkash: adminBkashInput.value, nagad: adminNagadInput.value })
-    .then(()=>alert("Payment Numbers Saved!"))
-    .catch(err=>alert("Error: "+err.message));
-};
-document.getElementById('reloadPaymentBtn').onclick = loadPayment;
-function loadPayment(){
+/* ======== Escape HTML helper ======== */
+function escapeHtml(text) {
+  if (text === undefined || text === null) return '';
+  return String(text)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+/* ======== Payment Load/Save ======== */
+function loadPayment() {
   db.ref('payment').once('value').then(snap=>{
     const d = snap.val() || {};
-    adminBkashInput.value = d.bkash || "";
-    adminNagadInput.value = d.nagad || "";
+    adminBkash.value = d.bkash || '';
+    adminNagad.value = d.nagad || '';
   });
 }
+savePaymentBtn.onclick = ()=>{
+  db.ref('payment').update({
+    bkash: adminBkash.value.trim(),
+    nagad: adminNagad.value.trim()
+  }).then(()=>alert("Payment saved!"));
+};
+reloadPaymentBtn.onclick = loadPayment;
+db.ref('payment').on('value',snap=>{
+  const d = snap.val()||{};
+  if(document.activeElement!==adminBkash) adminBkash.value=d.bkash||'';
+  if(document.activeElement!==adminNagad) adminNagad.value=d.nagad||'';
+});
 loadPayment();
 
-/* Product Section */
-const form = document.getElementById('productForm');
-const prodList = document.getElementById('productList');
-const prodName = document.getElementById('prodName');
-const prodCategory = document.getElementById('prodCategory');
-const prodPrice = document.getElementById('prodPrice');
-const prodDescription = document.getElementById('prodDescription');
-const prodImage = document.getElementById('prodImage');
-const imagePreviewInput = document.getElementById('imagePreviewInput');
-let editingKey = null;
-
-prodImage.addEventListener('change', ()=>{
-  const file = prodImage.files[0];
-  imagePreviewInput.value = file ? file.name : "";
-});
-
-form.addEventListener('submit', async e=>{
+/* ======== Product Add/Edit/Delete ======== */
+let editingKey=null;
+prodForm.onsubmit = e=>{
   e.preventDefault();
-  console.log("Form submitted"); // debug
-
-  const name = prodName.value.trim();
-  const category = prodCategory.value.trim();
-  const price = parseFloat(prodPrice.value);
-  const description = prodDescription.value.trim();
-  const file = prodImage.files[0];
-
-  if(!name || !category || isNaN(price) || !description){
-    alert("সব ফিল্ড পূরণ করুন"); return;
-  }
-
-  if(!file && !editingKey){
-    alert("Image দিতে হবে"); return;
-  }
-
-  try{
-    let imageUrl = "";
-    if(file){
-      const ref = storage.ref('products/' + Date.now() + '_' + file.name);
-      const snapshot = await ref.put(file);
-      imageUrl = await snapshot.ref.getDownloadURL();
-      console.log("Image uploaded:", imageUrl);
-    } else if(editingKey){
-      const snap = await db.ref('products/'+editingKey).once('value');
-      imageUrl = snap.val().image;
-    }
-
-    const productData = { name, category, price, description, image: imageUrl };
-
+  const obj = {
+    name: prodName.value,
+    category: prodCategory.value,
+    price: prodPrice.value,
+    description: prodDescription.value
+  };
+  const file=prodImage.files[0];
+  if(file){
+    const reader=new FileReader();
+    reader.onload=ev=>{
+      obj.image=ev.target.result;
+      saveProduct(obj);
+    };
+    reader.readAsDataURL(file);
+  } else {
     if(editingKey){
-      await db.ref('products/'+editingKey).set(productData);
-      alert("Product Updated");
-      editingKey = null;
+      db.ref("products/"+editingKey).once("value").then(snap=>{
+        obj.image=snap.val().image||"";
+        saveProduct(obj);
+      });
     } else {
-      await db.ref('products').push(productData);
-      alert("Product Added");
+      obj.image="";
+      saveProduct(obj);
     }
-
-    form.reset();
-    imagePreviewInput.value = "";
-  } catch(err){
-    console.error(err);
-    alert("Error: "+err.message);
   }
-});
+};
+function saveProduct(obj){
+  if(editingKey){
+    db.ref("products/"+editingKey).update(obj).then(()=>{
+      alert("Updated"); resetForm();
+    });
+  } else {
+    db.ref("products").push(obj).then(()=>{ alert("Added"); resetForm(); });
+  }
+}
+function resetForm(){
+  prodForm.reset();
+  editingKey=null;
+  addUpdateBtn.textContent="Add Product";
+  cancelEditBtn.style.display="none";
+}
+cancelEditBtn.onclick=resetForm;
 
-/* Load Products */
-db.ref('products').on('value', snap=>{
-  prodList.innerHTML = "";
-  snap.forEach(child=>{
-    const p = child.val(); const key = child.key;
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${p.name}</td>
-      <td>${p.category}</td>
-      <td>${p.price}</td>
-      <td>${p.description}</td>
-      <td>${p.image? `<img class="thumb" src="${p.image}">` : 'No Image'}</td>
+db.ref("products").on("value",snap=>{
+  productList.innerHTML="";
+  snap.forEach(c=>{
+    const p=c.val(); const k=c.key;
+    const tr=document.createElement("tr");
+    tr.innerHTML=`
+      <td>${escapeHtml(p.name)}</td>
+      <td>${escapeHtml(p.category)}</td>
+      <td>${escapeHtml(p.price)}</td>
+      <td>${escapeHtml(p.description)}</td>
+      <td>${p.image?'<img src="'+p.image+'" class="thumb">':'No Img'}</td>
       <td>
-        <button class="edit" onclick="editProduct('${key}')">Edit</button>
-        <button class="delete" onclick="deleteProduct('${key}')">Delete</button>
-      </td>
-    `;
-    prodList.appendChild(tr);
+        <button class="edit" onclick="editProduct('${k}')">Edit</button>
+        <button class="delete" onclick="delProduct('${k}')">Delete</button>
+      </td>`;
+    productList.appendChild(tr);
   });
 });
-
-window.editProduct = async function(key){
-  const snap = await db.ref('products/'+key).once('value');
-  const p = snap.val();
-  if(!p) return;
-  prodName.value = p.name;
-  prodCategory.value = p.category;
-  prodPrice.value = p.price;
-  prodDescription.value = p.description;
-  imagePreviewInput.value = p.image ? "Uploaded" : "";
-  editingKey = key;
+window.editProduct=function(k){
+  db.ref("products/"+k).once("value").then(snap=>{
+    const p=snap.val();
+    prodName.value=p.name; prodCategory.value=p.category; prodPrice.value=p.price; prodDescription.value=p.description;
+    editingKey=k;
+    addUpdateBtn.textContent="Update Product";
+    cancelEditBtn.style.display="inline-block";
+  });
+};
+window.delProduct=function(k){
+  if(confirm("Delete?")) db.ref("products/"+k).remove();
 };
 
-window.deleteProduct = function(key){
-  if(confirm("Delete this product?")) db.ref('products/'+key).remove();
-};
-
-/* Orders Section */
-const orderList = document.getElementById('orderList');
-db.ref('orders').on('value', snap=>{
-  orderList.innerHTML = "";
-  snap.forEach(child=>{
-    const o = child.val(); const key = child.key;
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${o.product}</td>
-      <td>${o.name}</td>
-      <td>${o.email}</td>
-      <td>${o.phone}</td>
-      <td>${o.payment}</td>
-      <td>${o.sendNumber||''}</td>
-      <td>${o.trnx||''}</td>
-      <td>${o.date||''}</td>
+/* ======== Orders with Status ======== */
+db.ref("orders").on("value",snap=>{
+  orderList.innerHTML="";
+  snap.forEach(c=>{
+    const o=c.val(); const k=c.key;
+    const tr=document.createElement("tr");
+    tr.innerHTML=`
+      <td>${escapeHtml(o.product)}</td>
+      <td>${escapeHtml(o.name)}</td>
+      <td>${escapeHtml(o.email)}</td>
+      <td>${escapeHtml(o.phone)}</td>
+      <td>${escapeHtml(o.payment)}</td>
+      <td>${escapeHtml(o.sendNumber||'')}</td>
+      <td>${escapeHtml(o.trnx||'')}</td>
+      <td>${escapeHtml(o.date||'')}</td>
       <td>
-        <button class="done" onclick="markDone('${key}')">Done</button>
-        <button class="print" onclick="printInvoice('${key}')">Print</button>
+        <select class="statusSelect" onchange="updateStatus('${k}',this.value)">
+          <option value="pending" ${o.status==="pending"?"selected":""}>Pending</option>
+          <option value="success" ${o.status==="success"?"selected":""}>Success</option>
+          <option value="failed" ${o.status==="failed"?"selected":""}>Failed</option>
+        </select>
       </td>
-    `;
+      <td>
+        <button class="print" onclick="printInvoice('${k}')">Print</button>
+      </td>`;
     orderList.appendChild(tr);
   });
 });
-
-window.markDone = async function(orderKey){
-  if(!confirm("Mark this order as done?")) return;
-  const snap = await db.ref('orders/'+orderKey).once('value');
-  const order = snap.val(); if(!order) return;
-  await db.ref('completedOrders').push(order);
-  await db.ref('orders/'+orderKey).remove();
-  trimCompletedOrders();
+window.updateStatus=function(orderKey,newStatus){
+  db.ref("orders/"+orderKey).update({status:newStatus});
 };
 
-async function trimCompletedOrders(){
-  const snap = await db.ref('completedOrders').once('value');
-  const all = [];
-  snap.forEach(c=>all.push({key:c.key,val:c.val()}));
-  if(all.length>5){
-    const extra = all.slice(0, all.length-5);
-    extra.forEach(e=> db.ref('completedOrders/'+e.key).remove());
-  }
-}
-
-window.printInvoice = async function(orderKey){
-  const snap = await db.ref('orders/'+orderKey).once('value');
-  const o = snap.val(); if(!o) return;
-  const w = window.open('', '', 'width=800,height=600');
-  w.document.write(`<h2>Cloud Mart Invoice</h2>
-    <p><b>Date:</b> ${o.date||''}</p>
-    <p><b>Name:</b> ${o.name||''}</p>
-    <p><b>Email:</b> ${o.email||''}</p>
-    <p><b>Phone:</b> ${o.phone||''}</p>
-    <p><b>Product:</b> ${o.product||''}</p>
-    <p><b>Payment:</b> ${o.payment||''}</p>
-    <p><b>Transaction:</b> ${o.trnx||''}</p>`);
-  w.document.close(); w.print();
+/* ======== Print Invoice ======== */
+window.printInvoice=function(k){
+  db.ref("orders/"+k).once("value").then(snap=>{
+    const o=snap.val();
+    const w=window.open("","_blank","width=800,height=600");
+    w.document.write(`
+      <html><head><title>Invoice</title></head><body>
+      <h2>Cloud Mart Invoice</h2>
+      <p><b>Date:</b> ${o.date||""}</p>
+      <p><b>Name:</b> ${o.name||""}</p>
+      <p><b>Email:</b> ${o.email||""}</p>
+      <p><b>Phone:</b> ${o.phone||""}</p>
+      <p><b>Product:</b> ${o.product||""}</p>
+      <p><b>Payment:</b> ${o.payment||""}</p>
+      <p><b>Transaction:</b> ${o.trnx||""}</p>
+      <p><b>Status:</b> ${o.status||""}</p>
+      <hr><p>Thank you!</p>
+      </body></html>
+    `);
+    w.document.close(); w.print();
+  });
 };
 </script>
 </body>
