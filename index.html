@@ -19,6 +19,7 @@ button:hover { transform:scale(1.05); }
 .print { background:#007bff; color:#fff; border:none; padding:5px 10px; }
 .edit { background:#ffc107; color:#111; border:none; padding:5px 10px; }
 img.thumb { width:50px; height:50px; object-fit:cover; border-radius:6px; }
+.notice { font-size:12px; color:#555; }
 </style>
 </head>
 <body>
@@ -41,11 +42,11 @@ img.thumb { width:50px; height:50px; object-fit:cover; border-radius:6px; }
 
   <!-- Products Section -->
   <h2>Add / Edit Product</h2>
-  <form id="productForm">
+  <form id="productForm" style="max-width:500px;">
     <input type="text" id="prodName" placeholder="Product Name" required>
     <input type="text" id="prodCategory" placeholder="Category" required>
     <input type="number" id="prodPrice" placeholder="Price" step="0.01" required>
-    <input type="text" id="prodDescription" placeholder="Product Description" required>
+    <textarea id="prodDescription" placeholder="Product Description" required></textarea>
     <input type="file" id="prodImage" accept="image/*">
     <button type="submit" id="addUpdateBtn">Add Product</button>
   </form>
@@ -78,7 +79,6 @@ img.thumb { width:50px; height:50px; object-fit:cover; border-radius:6px; }
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
 
 <script>
-/* Firebase Config */
 const firebaseConfig = {
   apiKey: "AIzaSyCl9ENd3XOP1KeutD7s1zSiXYSuz4VIqGU",
   authDomain: "cloud-mart01.firebaseapp.com",
@@ -97,7 +97,7 @@ const storage = firebase.storage();
 const adminBkashInput = document.getElementById('adminBkash');
 const adminNagadInput = document.getElementById('adminNagad');
 document.getElementById('savePaymentBtn').onclick = ()=>{
-  db.ref('payment').update({ 
+  db.ref('payment').set({ 
     bkash: adminBkashInput.value, 
     nagad: adminNagadInput.value 
   }).then(()=>alert("Payment Numbers Saved!"));
@@ -122,7 +122,7 @@ const prodDescription = document.getElementById('prodDescription');
 const prodImage = document.getElementById('prodImage');
 let editingKey = null;
 
-prodForm.addEventListener('submit', e=>{
+prodForm.addEventListener('submit', async e=>{
   e.preventDefault();
   const name = prodName.value.trim();
   const category = prodCategory.value.trim();
@@ -130,45 +130,41 @@ prodForm.addEventListener('submit', e=>{
   const description = prodDescription.value.trim();
   const file = prodImage.files[0];
 
-  if(!name || !category || !price){ alert("সব ফিল্ড পূরণ করুন"); return; }
+  if(!name || !category || !price || !description){
+    alert("সব ফিল্ড পূরণ করুন"); return;
+  }
 
+  let imageUrl = "";
   if(file){
     const storageRef = storage.ref('products/' + Date.now() + '_' + file.name);
-    storageRef.put(file).then(snapshot=>{
-      snapshot.ref.getDownloadURL().then(url=>{
-        saveOrUpdateProduct({name, category, price, description, image:url});
-      });
-    });
-  } else {
-    saveOrUpdateProduct({name, category, price, description, image:""});
+    const snapshot = await storageRef.put(file);
+    imageUrl = await snapshot.ref.getDownloadURL();
   }
-});
 
-function saveOrUpdateProduct(obj){
+  const productData = { name, category, price, description, image: imageUrl };
+
   if(editingKey){
-    db.ref('products/'+editingKey).update(obj).then(()=>{
-      alert("Product Updated");
-      prodForm.reset(); editingKey=null;
-    });
+    await db.ref('products/' + editingKey).update(productData);
+    alert("Product Updated");
+    editingKey = null;
   } else {
-    db.ref('products').push(obj).then(()=>{
-      alert("Product Added");
-      prodForm.reset();
-    });
+    await db.ref('products').push(productData);
+    alert("Product Added");
   }
-}
+  prodForm.reset();
+});
 
 db.ref('products').on('value', snap=>{
   prodList.innerHTML = "";
   snap.forEach(child=>{
-    const p = child.val(); const key=child.key;
+    const p = child.val(); const key = child.key;
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>${p.name}</td>
       <td>${p.category}</td>
       <td>${p.price}</td>
       <td>${p.description}</td>
-      <td>${p.image? `<img class="thumb" src="${p.image}">` : 'No Image'}</td>
+      <td>${p.image ? `<img class="thumb" src="${p.image}">` : 'No Image'}</td>
       <td>
         <button class="edit" onclick="editProduct('${key}')">Edit</button>
         <button class="delete" onclick="deleteProduct('${key}')">Delete</button>
@@ -178,16 +174,22 @@ db.ref('products').on('value', snap=>{
   });
 });
 
-window.editProduct = function(key){
-  db.ref('products/'+key).once('value').then(snap=>{
-    const p = snap.val(); if(!p) return;
-    prodName.value = p.name; prodCategory.value=p.category;
-    prodPrice.value=p.price; prodDescription.value=p.description;
-    editingKey=key; alert("Edit mode ON. Update and save!");
-  });
+window.editProduct = async function(key){
+  const snap = await db.ref('products/' + key).once('value');
+  const p = snap.val();
+  if(!p) return;
+  prodName.value = p.name;
+  prodCategory.value = p.category;
+  prodPrice.value = p.price;
+  prodDescription.value = p.description;
+  editingKey = key;
+  alert("Edit mode ON. Update and save!");
 };
+
 window.deleteProduct = function(key){
-  if(confirm("Delete this product?")) db.ref('products/'+key).remove();
+  if(confirm("Delete this product?")){
+    db.ref('products/' + key).remove();
+  }
 };
 
 /* Orders Section */
@@ -195,7 +197,7 @@ const orderList = document.getElementById('orderList');
 db.ref('orders').on('value', snap=>{
   orderList.innerHTML = "";
   snap.forEach(child=>{
-    const o = child.val(); const key=child.key;
+    const o = child.val(); const key = child.key;
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>${o.product}</td>
@@ -215,31 +217,30 @@ db.ref('orders').on('value', snap=>{
   });
 });
 
-window.markDone = function(orderKey){
+window.markDone = async function(orderKey){
   if(!confirm("Mark this order as done?")) return;
-  db.ref('orders/'+orderKey).once('value').then(snap=>{
-    const order = snap.val(); if(!order) return;
-    db.ref('completedOrders').push(order);   // move to completedOrders
-    db.ref('orders/'+orderKey).remove();     // delete from orders
-    trimCompletedOrders();
-  });
+  const snap = await db.ref('orders/'+orderKey).once('value');
+  const order = snap.val(); if(!order) return;
+  await db.ref('completedOrders').push(order);
+  await db.ref('orders/'+orderKey).remove();
+  trimCompletedOrders();
 };
 
-function trimCompletedOrders(){
-  db.ref('completedOrders').once('value').then(snap=>{
-    const all=[]; snap.forEach(c=>all.push({key:c.key,val:c.val()}));
-    if(all.length>5){
-      const extra = all.slice(0, all.length-5);
-      extra.forEach(e=> db.ref('completedOrders/'+e.key).remove());
-    }
-  });
+async function trimCompletedOrders(){
+  const snap = await db.ref('completedOrders').once('value');
+  const all = [];
+  snap.forEach(c=>all.push({key:c.key,val:c.val()}));
+  if(all.length>5){
+    const extra = all.slice(0, all.length-5);
+    extra.forEach(e=> db.ref('completedOrders/'+e.key).remove());
+  }
 }
 
-window.printInvoice = function(orderKey){
-  db.ref('orders/'+orderKey).once('value').then(snap=>{
-    const o = snap.val(); if(!o) return;
-    const w = window.open('', '', 'width=800,height=600');
-    w.document.write(`<h2>Cloud Mart Invoice</h2>
+window.printInvoice = async function(orderKey){
+  const snap = await db.ref('orders/'+orderKey).once('value');
+  const o = snap.val(); if(!o) return;
+  const w = window.open('', '', 'width=800,height=600');
+  w.document.write(`<h2>Cloud Mart Invoice</h2>
     <p><b>Date:</b> ${o.date||''}</p>
     <p><b>Name:</b> ${o.name||''}</p>
     <p><b>Email:</b> ${o.email||''}</p>
@@ -247,8 +248,7 @@ window.printInvoice = function(orderKey){
     <p><b>Product:</b> ${o.product||''}</p>
     <p><b>Payment:</b> ${o.payment||''}</p>
     <p><b>Transaction:</b> ${o.trnx||''}</p>`);
-    w.document.close(); w.print();
-  });
+  w.document.close(); w.print();
 }
 </script>
 </body>
