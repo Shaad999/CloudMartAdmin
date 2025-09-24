@@ -67,7 +67,7 @@ img.thumb { width:50px; height:50px; object-fit:cover; border-radius:6px; }
   <input type="text" id="prodCategory" placeholder="Category" required>
   <input type="number" id="prodPrice" placeholder="Price" step="0.01" required>
   <textarea id="prodDescription" placeholder="Description" required></textarea>
-  <input type="file" id="prodImage" accept="image/*" required>
+  <input type="file" id="prodImage" accept="image/*">
   <img id="imagePreview" src="" alt="Image Preview">
   <button type="submit" id="addUpdateBtn">Add Product</button>
 </form>
@@ -115,10 +115,10 @@ const storage = firebase.storage();
 /* Payment Section */
 const adminBkashInput = document.getElementById('adminBkash');
 const adminNagadInput = document.getElementById('adminNagad');
-
 document.getElementById('savePaymentBtn').onclick = ()=>{
   db.ref('payment').set({ bkash: adminBkashInput.value, nagad: adminNagadInput.value })
-    .then(()=>alert("Payment Numbers Saved!"));
+    .then(()=>alert("Payment Numbers Saved!"))
+    .catch(err=>alert("Error: "+err.message));
 };
 document.getElementById('reloadPaymentBtn').onclick = loadPayment;
 function loadPayment(){
@@ -149,32 +149,47 @@ prodImage.addEventListener('change', ()=>{
 
 form.addEventListener('submit', async e=>{
   e.preventDefault();
-  const name = prodName.value.trim();
-  const category = prodCategory.value.trim();
-  const price = parseFloat(prodPrice.value);
-  const description = prodDescription.value.trim();
-  const file = prodImage.files[0];
+  try{
+    const name = prodName.value.trim();
+    const category = prodCategory.value.trim();
+    const price = parseFloat(prodPrice.value);
+    const description = prodDescription.value.trim();
+    const file = prodImage.files[0];
 
-  if(!name || !category || isNaN(price) || !description || !file){
-    alert("সব ফিল্ড পূরণ করুন এবং image দিতে হবে"); return;
+    if(!name || !category || isNaN(price) || !description){
+      alert("সব ফিল্ড পূরণ করুন"); return;
+    }
+
+    if(!file && !editingKey){
+      alert("Image দিতে হবে"); return;
+    }
+
+    let imageUrl = "";
+    if(file){
+      const ref = storage.ref('products/' + Date.now() + '_' + file.name);
+      const snapshot = await ref.put(file);
+      imageUrl = await snapshot.ref.getDownloadURL();
+    } else if(editingKey){
+      const snap = await db.ref('products/'+editingKey).once('value');
+      imageUrl = snap.val().image;
+    }
+
+    const productData = { name, category, price, description, image: imageUrl };
+
+    if(editingKey){
+      await db.ref('products/'+editingKey).set(productData);
+      alert("Product Updated");
+      editingKey = null;
+    } else {
+      await db.ref('products').push(productData);
+      alert("Product Added");
+    }
+
+    form.reset();
+    imagePreview.src = "";
+  } catch(err){
+    alert("Error: "+err.message);
   }
-
-  const ref = storage.ref('products/' + Date.now() + '_' + file.name);
-  const snapshot = await ref.put(file);
-  const imageUrl = await snapshot.ref.getDownloadURL();
-
-  const productData = { name, category, price, description, image: imageUrl };
-
-  if(editingKey){
-    await db.ref('products/'+editingKey).set(productData);
-    alert("Product Updated");
-    editingKey = null;
-  } else {
-    await db.ref('products').push(productData);
-    alert("Product Added");
-  }
-  form.reset();
-  imagePreview.src = "";
 });
 
 /* Load Products */
