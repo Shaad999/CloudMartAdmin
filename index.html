@@ -10,11 +10,13 @@ header { background:#333; color:#fff; padding:15px; text-align:center; font-size
 h2 { margin-top:30px; }
 .notice { font-size:12px; color:#555; }
 
-/* Horizontal form layout */
+/* Payment Section */
+.payment-section { max-width:420px; margin-bottom:30px; }
+.payment-section input { width:100%; padding:8px; margin:5px 0; border:1px solid #ccc; border-radius:5px; }
+
+/* Horizontal form layout for product */
 #productForm { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:20px; align-items:flex-start; }
-#productForm input[type=text], 
-#productForm input[type=number], 
-#productForm textarea { flex:1; padding:8px; border:1px solid #ccc; border-radius:5px; }
+#productForm input[type=text], #productForm input[type=number], #productForm textarea { flex:1; padding:8px; border:1px solid #ccc; border-radius:5px; }
 #productForm textarea { height:50px; }
 #productForm input[type=file] { flex-basis:100%; }
 #addUpdateBtn { flex-basis:100%; padding:10px; background:#007bff; color:#fff; border:none; border-radius:5px; cursor:pointer; transition:0.3s; }
@@ -36,6 +38,21 @@ img.thumb { width:50px; height:50px; object-fit:cover; border-radius:6px; }
 <header>Cloud Mart - Admin Panel (Firebase)</header>
 <div class="container">
 
+<!-- Payment Section -->
+<h2>Payment Method</h2>
+<div class="payment-section">
+  <label>Bkash Number:</label>
+  <input type="text" id="adminBkash" placeholder="Enter Bkash Number">
+  <label>Nagad Number:</label>
+  <input type="text" id="adminNagad" placeholder="Enter Nagad Number">
+  <div style="display:flex;gap:8px;">
+    <button id="savePaymentBtn" style="flex:1">Save Payment Numbers</button>
+    <button id="reloadPaymentBtn" style="flex:1">Reload From Firebase</button>
+  </div>
+  <p class="notice">Payment নম্বর change করলে অবশ্যই Save চাপুন — তা Firebase এ আপডেট হবে।</p>
+</div>
+
+<!-- Product Section -->
 <h2>Add / Edit Product</h2>
 <form id="productForm">
   <input type="text" id="prodName" placeholder="Product Name" required>
@@ -54,6 +71,18 @@ img.thumb { width:50px; height:50px; object-fit:cover; border-radius:6px; }
   <tbody id="productList"></tbody>
 </table>
 
+<!-- Orders Section -->
+<h2>Orders</h2>
+<table>
+  <thead>
+    <tr>
+      <th>Product</th><th>User</th><th>Email</th><th>Phone</th>
+      <th>Payment</th><th>Send Number</th><th>Trnx ID</th><th>Date</th><th>Action</th>
+    </tr>
+  </thead>
+  <tbody id="orderList"></tbody>
+</table>
+
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -61,6 +90,7 @@ img.thumb { width:50px; height:50px; object-fit:cover; border-radius:6px; }
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
 
 <script>
+/* Firebase Config */
 const firebaseConfig = {
   apiKey: "AIzaSyCl9ENd3XOP1KeutD7s1zSiXYSuz4VIqGU",
   authDomain: "cloud-mart01.firebaseapp.com",
@@ -74,7 +104,27 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 const storage = firebase.storage();
 
-/* Product Form */
+/* Payment Section */
+const adminBkashInput = document.getElementById('adminBkash');
+const adminNagadInput = document.getElementById('adminNagad');
+
+document.getElementById('savePaymentBtn').onclick = ()=>{
+  db.ref('payment').set({ bkash: adminBkashInput.value, nagad: adminNagadInput.value })
+    .then(()=>alert("Payment Numbers Saved!"));
+};
+
+document.getElementById('reloadPaymentBtn').onclick = loadPayment;
+
+function loadPayment(){
+  db.ref('payment').once('value').then(snap=>{
+    const d = snap.val() || {};
+    adminBkashInput.value = d.bkash || "";
+    adminNagadInput.value = d.nagad || "";
+  });
+}
+loadPayment();
+
+/* Product Section */
 const form = document.getElementById('productForm');
 const prodList = document.getElementById('productList');
 const prodName = document.getElementById('prodName');
@@ -82,7 +132,6 @@ const prodCategory = document.getElementById('prodCategory');
 const prodPrice = document.getElementById('prodPrice');
 const prodDescription = document.getElementById('prodDescription');
 const prodImage = document.getElementById('prodImage');
-
 let editingKey = null;
 
 form.addEventListener('submit', async e=>{
@@ -93,9 +142,7 @@ form.addEventListener('submit', async e=>{
   const description = prodDescription.value.trim();
   const file = prodImage.files[0];
 
-  if(!name || !category || isNaN(price) || !description){
-    alert("সব ফিল্ড পূরণ করুন"); return;
-  }
+  if(!name || !category || isNaN(price) || !description){ alert("সব ফিল্ড পূরণ করুন"); return; }
 
   let imageUrl = "";
   if(file){
@@ -154,6 +201,65 @@ window.deleteProduct = function(key){
   if(confirm("Delete this product?")){
     db.ref('products/'+key).remove();
   }
+};
+
+/* Orders Section */
+const orderList = document.getElementById('orderList');
+db.ref('orders').on('value', snap=>{
+  orderList.innerHTML = "";
+  snap.forEach(child=>{
+    const o = child.val(); const key = child.key;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${o.product}</td>
+      <td>${o.name}</td>
+      <td>${o.email}</td>
+      <td>${o.phone}</td>
+      <td>${o.payment}</td>
+      <td>${o.sendNumber||''}</td>
+      <td>${o.trnx||''}</td>
+      <td>${o.date||''}</td>
+      <td>
+        <button class="done" onclick="markDone('${key}')">Done</button>
+        <button class="print" onclick="printInvoice('${key}')">Print</button>
+      </td>
+    `;
+    orderList.appendChild(tr);
+  });
+});
+
+window.markDone = async function(orderKey){
+  if(!confirm("Mark this order as done?")) return;
+  const snap = await db.ref('orders/'+orderKey).once('value');
+  const order = snap.val(); if(!order) return;
+  await db.ref('completedOrders').push(order);
+  await db.ref('orders/'+orderKey).remove();
+  trimCompletedOrders();
+};
+
+async function trimCompletedOrders(){
+  const snap = await db.ref('completedOrders').once('value');
+  const all = [];
+  snap.forEach(c=>all.push({key:c.key,val:c.val()}));
+  if(all.length>5){
+    const extra = all.slice(0, all.length-5);
+    extra.forEach(e=> db.ref('completedOrders/'+e.key).remove());
+  }
+}
+
+window.printInvoice = async function(orderKey){
+  const snap = await db.ref('orders/'+orderKey).once('value');
+  const o = snap.val(); if(!o) return;
+  const w = window.open('', '', 'width=800,height=600');
+  w.document.write(`<h2>Cloud Mart Invoice</h2>
+    <p><b>Date:</b> ${o.date||''}</p>
+    <p><b>Name:</b> ${o.name||''}</p>
+    <p><b>Email:</b> ${o.email||''}</p>
+    <p><b>Phone:</b> ${o.phone||''}</p>
+    <p><b>Product:</b> ${o.product||''}</p>
+    <p><b>Payment:</b> ${o.payment||''}</p>
+    <p><b>Transaction:</b> ${o.trnx||''}</p>`);
+  w.document.close(); w.print();
 };
 </script>
 </body>
