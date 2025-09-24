@@ -322,21 +322,20 @@ function escapeHtml(text) {
 }
 
 /* ============================
-   Orders: realtime render & complete
+   Orders: pending orders (max 5)
    ============================ */
-db.ref('orders').on('value', snap=>{
+db.ref('orders').on('value', snap => {
   orderList.innerHTML = '';
   let i = 0;
   const orders = [];
-  snap.forEach(child=>{
+  snap.forEach(child => {
     const o = child.val();
     o.key = child.key;
     orders.push(o);
   });
-  // show only 5 latest incomplete orders first
-  const incompleteOrders = orders.filter(o => o.status !== 'Complete').slice(0,5);
+  const latestOrders = orders.sort((a,b)=> new Date(b.date || 0) - new Date(a.date || 0)).slice(0,5);
   
-  incompleteOrders.forEach(o=>{
+  latestOrders.forEach(o => {
     const tr = document.createElement('tr');
     tr.className = 'show';
     tr.innerHTML = `
@@ -349,9 +348,7 @@ db.ref('orders').on('value', snap=>{
       <td>${escapeHtml(o.trnx||'')}</td>
       <td>${escapeHtml(o.date||'')}</td>
       <td>
-        ${o.status === 'Complete' 
-          ? '<span class="small" style="color:green;font-weight:bold;">Complete</span>'
-          : `<button class="done small" onclick="markDone('${o.key.replace(/'/g,"\\'")}')">Complete</button>`}
+        <button class="done small" onclick="markDone('${o.key.replace(/'/g,"\\'")}')">Complete</button>
         <button class="print small" onclick="printInvoice('${o.key.replace(/'/g,"\\'")}')">Print</button>
       </td>
     `;
@@ -361,11 +358,55 @@ db.ref('orders').on('value', snap=>{
   });
 });
 
+/* ============================
+   Mark order as complete
+   ============================ */
 window.markDone = function(orderKey) {
-  if (!confirm('Mark this order as complete?')) return;
-  db.ref('Complete Orders/' + orderKey).update({ status: 'Complete' })
-    .catch(e => { console.error(e); alert('Failed to mark complete.'); });
+  if(!confirm('Mark this order as complete?')) return;
+  
+  // Read order first
+  db.ref('orders/' + orderKey).once('value').then(snap => {
+    const orderData = snap.val();
+    if(!orderData) return alert('Order not found');
+    
+    // Push to Complete Orders node
+    db.ref('Complete Orders/' + orderKey).set({...orderData, status:'Complete'})
+      .then(() => {
+        // Remove from pending orders
+        return db.ref('orders/' + orderKey).remove();
+      })
+      .catch(e => {
+        console.error(e);
+        alert('Failed to mark complete.');
+      });
+  });
 };
+
+/* ============================
+   Optionally: render Complete Orders
+   ============================ */
+const completeList = document.getElementById('completeOrderList'); // আলাদা table tbody
+db.ref('Complete Orders').on('value', snap => {
+  if(!completeList) return;
+  completeList.innerHTML = '';
+  snap.forEach(child => {
+    const o = child.val();
+    const key = child.key;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${escapeHtml(o.product)}</td>
+      <td>${escapeHtml(o.name)}</td>
+      <td>${escapeHtml(o.email)}</td>
+      <td>${escapeHtml(o.phone)}</td>
+      <td>${escapeHtml(o.payment)}</td>
+      <td>${escapeHtml(o.sendNumber||'')}</td>
+      <td>${escapeHtml(o.trnx||'')}</td>
+      <td>${escapeHtml(o.date||'')}</td>
+      <td><span style="color:green;font-weight:bold;">Complete</span></td>
+    `;
+    completeList.appendChild(tr);
+  });
+});
 
 
 /* print invoice for order key */
