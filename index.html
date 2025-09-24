@@ -67,7 +67,7 @@ img.thumb { width:50px; height:50px; object-fit:cover; border-radius:6px; }
   <input type="text" id="prodCategory" placeholder="Category" required>
   <input type="number" id="prodPrice" placeholder="Price" step="0.01" required>
   <textarea id="prodDescription" placeholder="Description" required></textarea>
-  <input type="file" id="prodImage" accept="image/*" required>
+  <input type="file" id="prodImage" accept="image/*">
   <input type="text" id="imagePreviewInput" placeholder="Image Preview" readonly style="flex:1; padding:8px; border:1px solid #ccc; border-radius:5px;">
   <button type="submit" id="addUpdateBtn">Add Product</button>
 </form>
@@ -100,13 +100,13 @@ img.thumb { width:50px; height:50px; object-fit:cover; border-radius:6px; }
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
 
 <script>
-// Correct Firebase Config
+// Firebase Config
 const firebaseConfig = {
   apiKey: "AIzaSyCl9ENd3XOP1KeutD7s1zSiXYSuz4VIqGU",
   authDomain: "cloud-mart01.firebaseapp.com",
   databaseURL: "https://cloud-mart01-default-rtdb.firebaseio.com",
   projectId: "cloud-mart01",
-  storageBucket: "cloud-mart01.appspot.com", // <- ঠিক করা
+  storageBucket: "cloud-mart01.appspot.com",
   messagingSenderId: "656495467691",
   appId: "1:656495467691:web:b0c0f7356b36af5de12bee",
   measurementId: "G-PXLYR809MM"
@@ -146,32 +146,34 @@ let editingKey = null;
 
 prodImage.addEventListener('change', ()=>{
   const file = prodImage.files[0];
-  if(file) imagePreviewInput.value = file.name;
-  else imagePreviewInput.value = "";
+  imagePreviewInput.value = file ? file.name : "";
 });
 
 form.addEventListener('submit', async e=>{
   e.preventDefault();
+  console.log("Form submitted"); // debug
+
+  const name = prodName.value.trim();
+  const category = prodCategory.value.trim();
+  const price = parseFloat(prodPrice.value);
+  const description = prodDescription.value.trim();
+  const file = prodImage.files[0];
+
+  if(!name || !category || isNaN(price) || !description){
+    alert("সব ফিল্ড পূরণ করুন"); return;
+  }
+
+  if(!file && !editingKey){
+    alert("Image দিতে হবে"); return;
+  }
+
   try{
-    const name = prodName.value.trim();
-    const category = prodCategory.value.trim();
-    const price = parseFloat(prodPrice.value);
-    const description = prodDescription.value.trim();
-    const file = prodImage.files[0];
-
-    if(!name || !category || isNaN(price) || !description){
-      alert("সব ফিল্ড পূরণ করুন"); return;
-    }
-
-    if(!file && !editingKey){
-      alert("Image দিতে হবে"); return;
-    }
-
     let imageUrl = "";
     if(file){
       const ref = storage.ref('products/' + Date.now() + '_' + file.name);
       const snapshot = await ref.put(file);
       imageUrl = await snapshot.ref.getDownloadURL();
+      console.log("Image uploaded:", imageUrl);
     } else if(editingKey){
       const snap = await db.ref('products/'+editingKey).once('value');
       imageUrl = snap.val().image;
@@ -191,6 +193,7 @@ form.addEventListener('submit', async e=>{
     form.reset();
     imagePreviewInput.value = "";
   } catch(err){
+    console.error(err);
     alert("Error: "+err.message);
   }
 });
