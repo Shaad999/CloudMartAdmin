@@ -8,7 +8,7 @@ body { font-family: Arial, sans-serif; background:#f4f4f4; margin:0; padding:0; 
 header { background:#333; color:#fff; padding:15px; text-align:center; font-size:22px; }
 .container { padding:20px; }
 h2 { margin-top:30px; }
-input, select, button, textarea { padding:8px; margin:5px 0; border:1px solid #ccc; border-radius:5px; width:100%; box-sizing:border-box; }
+input, select, button, textarea { padding:8px; margin:5px 0; border:1px solid #ccc; border-radius:5px; box-sizing:border-box; }
 table { width:100%; border-collapse:collapse; margin-top:15px; }
 th, td { border:1px solid #ddd; padding:12px 10px; text-align:center; }
 th { background:#555; color:#fff; }
@@ -19,6 +19,15 @@ button:hover { transform:scale(1.05); }
 .print { background:#007bff; color:#fff; border:none; padding:5px 10px; }
 .edit { background:#ffc107; color:#111; border:none; padding:5px 10px; }
 img.thumb { width:50px; height:50px; object-fit:cover; border-radius:6px; }
+
+/* Horizontal form layout */
+#productForm { display:flex; flex-wrap:wrap; gap:10px; max-width:100%; align-items:flex-start; }
+#productForm input[type=text], 
+#productForm input[type=number], 
+#productForm textarea { flex:1; }
+#productForm textarea { height:50px; }
+#productForm input[type=file] { flex-basis:100%; }
+#addUpdateBtn { flex-basis:100%; padding:10px; }
 .notice { font-size:12px; color:#555; }
 </style>
 </head>
@@ -42,7 +51,7 @@ img.thumb { width:50px; height:50px; object-fit:cover; border-radius:6px; }
 
   <!-- Products Section -->
   <h2>Add / Edit Product</h2>
-  <form id="productForm" style="max-width:500px;">
+  <form id="productForm">
     <input type="text" id="prodName" placeholder="Product Name" required>
     <input type="text" id="prodCategory" placeholder="Category" required>
     <input type="number" id="prodPrice" placeholder="Price" step="0.01" required>
@@ -88,7 +97,6 @@ const firebaseConfig = {
   messagingSenderId: "656495467691",
   appId: "1:656495467691:web:b0c0f7356b36af5de12bee"
 };
-
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 const storage = firebase.storage();
@@ -97,10 +105,8 @@ const storage = firebase.storage();
 const adminBkashInput = document.getElementById('adminBkash');
 const adminNagadInput = document.getElementById('adminNagad');
 document.getElementById('savePaymentBtn').onclick = ()=>{
-  db.ref('payment').set({ 
-    bkash: adminBkashInput.value, 
-    nagad: adminNagadInput.value 
-  }).then(()=>alert("Payment Numbers Saved!"));
+  db.ref('payment').set({ bkash: adminBkashInput.value, nagad: adminNagadInput.value })
+  .then(()=>alert("Payment Numbers Saved!"));
 };
 document.getElementById('reloadPaymentBtn').onclick = loadPayment;
 function loadPayment(){
@@ -126,11 +132,11 @@ prodForm.addEventListener('submit', async e=>{
   e.preventDefault();
   const name = prodName.value.trim();
   const category = prodCategory.value.trim();
-  const price = prodPrice.value.trim();
+  const price = parseFloat(prodPrice.value); // number type
   const description = prodDescription.value.trim();
   const file = prodImage.files[0];
 
-  if(!name || !category || !price || !description){
+  if(!name || !category || isNaN(price) || !description){
     alert("সব ফিল্ড পূরণ করুন"); return;
   }
 
