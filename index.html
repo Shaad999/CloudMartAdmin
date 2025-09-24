@@ -339,7 +339,7 @@ db.ref('orders').on('value', snap=>{
 
 window.markDone = function(orderKey) {
   if (!confirm('Mark this order as complete?')) return;
-  db.ref('orders/' + orderKey).update({ status: 'Complete' })
+  db.ref('Complete Orders/' + orderKey).update({ status: 'Complete' })
     .catch(e => { console.error(e); alert('Failed to mark complete.'); });
 };
 
@@ -394,3 +394,4 @@ window.addEventListener('beforeunload', ()=> {
 </script>
 </body>
 </html>
+
