@@ -3,10 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <title>Cloud Mart - Admin Panel</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
 body { font-family: Arial, sans-serif; background:#f4f4f4; margin:0; padding:0; }
 header { background:#333; color:#fff; padding:15px; text-align:center; font-size:22px; }
-.container { padding:20px; }
+.container { padding:20px; max-width:1200px; margin:auto; }
 h2 { margin-top:30px; }
 .notice { font-size:12px; color:#555; }
 
@@ -14,16 +15,17 @@ h2 { margin-top:30px; }
 .payment-section { max-width:420px; margin-bottom:30px; }
 .payment-section input { width:100%; padding:8px; margin:5px 0; border:1px solid #ccc; border-radius:5px; }
 
-/* Horizontal form layout for product */
+/* Horizontal Product Form */
 #productForm { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:20px; align-items:flex-start; }
 #productForm input[type=text], #productForm input[type=number], #productForm textarea { flex:1; padding:8px; border:1px solid #ccc; border-radius:5px; }
 #productForm textarea { height:50px; }
 #productForm input[type=file] { flex-basis:100%; }
+#imagePreview { width:80px; height:80px; object-fit:cover; border-radius:6px; border:1px solid #ccc; }
 #addUpdateBtn { flex-basis:100%; padding:10px; background:#007bff; color:#fff; border:none; border-radius:5px; cursor:pointer; transition:0.3s; }
 #addUpdateBtn:hover { transform:scale(1.05); }
 
-table { width:100%; border-collapse:collapse; margin-top:15px; }
-th, td { border:1px solid #ddd; padding:12px 10px; text-align:center; }
+table { width:100%; border-collapse:collapse; margin-top:15px; font-size:14px; }
+th, td { border:1px solid #ddd; padding:10px; text-align:center; vertical-align:middle; }
 th { background:#555; color:#fff; }
 button { cursor:pointer; transition:0.3s; }
 button:hover { transform:scale(1.05); }
@@ -32,6 +34,12 @@ button:hover { transform:scale(1.05); }
 .print { background:#007bff; color:#fff; border:none; padding:5px 10px; border-radius:4px; }
 .edit { background:#ffc107; color:#111; border:none; padding:5px 10px; border-radius:4px; }
 img.thumb { width:50px; height:50px; object-fit:cover; border-radius:6px; }
+
+/* Responsive */
+@media(max-width:768px){
+  #productForm { flex-direction:column; }
+  #productForm input, #productForm textarea { flex-basis:100%; }
+}
 </style>
 </head>
 <body>
@@ -59,7 +67,8 @@ img.thumb { width:50px; height:50px; object-fit:cover; border-radius:6px; }
   <input type="text" id="prodCategory" placeholder="Category" required>
   <input type="number" id="prodPrice" placeholder="Price" step="0.01" required>
   <textarea id="prodDescription" placeholder="Description" required></textarea>
-  <input type="file" id="prodImage" accept="image/*">
+  <input type="file" id="prodImage" accept="image/*" required>
+  <img id="imagePreview" src="" alt="Image Preview">
   <button type="submit" id="addUpdateBtn">Add Product</button>
 </form>
 
@@ -90,7 +99,6 @@ img.thumb { width:50px; height:50px; object-fit:cover; border-radius:6px; }
 <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
 
 <script>
-/* Firebase Config */
 const firebaseConfig = {
   apiKey: "AIzaSyCl9ENd3XOP1KeutD7s1zSiXYSuz4VIqGU",
   authDomain: "cloud-mart01.firebaseapp.com",
@@ -112,9 +120,7 @@ document.getElementById('savePaymentBtn').onclick = ()=>{
   db.ref('payment').set({ bkash: adminBkashInput.value, nagad: adminNagadInput.value })
     .then(()=>alert("Payment Numbers Saved!"));
 };
-
 document.getElementById('reloadPaymentBtn').onclick = loadPayment;
-
 function loadPayment(){
   db.ref('payment').once('value').then(snap=>{
     const d = snap.val() || {};
@@ -132,7 +138,14 @@ const prodCategory = document.getElementById('prodCategory');
 const prodPrice = document.getElementById('prodPrice');
 const prodDescription = document.getElementById('prodDescription');
 const prodImage = document.getElementById('prodImage');
+const imagePreview = document.getElementById('imagePreview');
 let editingKey = null;
+
+prodImage.addEventListener('change', ()=>{
+  const file = prodImage.files[0];
+  if(file) imagePreview.src = URL.createObjectURL(file);
+  else imagePreview.src = "";
+});
 
 form.addEventListener('submit', async e=>{
   e.preventDefault();
@@ -142,19 +155,18 @@ form.addEventListener('submit', async e=>{
   const description = prodDescription.value.trim();
   const file = prodImage.files[0];
 
-  if(!name || !category || isNaN(price) || !description){ alert("সব ফিল্ড পূরণ করুন"); return; }
-
-  let imageUrl = "";
-  if(file){
-    const ref = storage.ref('products/' + Date.now() + '_' + file.name);
-    const snapshot = await ref.put(file);
-    imageUrl = await snapshot.ref.getDownloadURL();
+  if(!name || !category || isNaN(price) || !description || !file){
+    alert("সব ফিল্ড পূরণ করুন এবং image দিতে হবে"); return;
   }
+
+  const ref = storage.ref('products/' + Date.now() + '_' + file.name);
+  const snapshot = await ref.put(file);
+  const imageUrl = await snapshot.ref.getDownloadURL();
 
   const productData = { name, category, price, description, image: imageUrl };
 
   if(editingKey){
-    await db.ref('products/'+editingKey).update(productData);
+    await db.ref('products/'+editingKey).set(productData);
     alert("Product Updated");
     editingKey = null;
   } else {
@@ -162,6 +174,7 @@ form.addEventListener('submit', async e=>{
     alert("Product Added");
   }
   form.reset();
+  imagePreview.src = "";
 });
 
 /* Load Products */
@@ -193,14 +206,12 @@ window.editProduct = async function(key){
   prodCategory.value = p.category;
   prodPrice.value = p.price;
   prodDescription.value = p.description;
+  imagePreview.src = p.image || "";
   editingKey = key;
-  alert("Edit mode ON. Update and save!");
 };
 
 window.deleteProduct = function(key){
-  if(confirm("Delete this product?")){
-    db.ref('products/'+key).remove();
-  }
+  if(confirm("Delete this product?")) db.ref('products/'+key).remove();
 };
 
 /* Orders Section */
