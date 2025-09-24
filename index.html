@@ -1,272 +1,461 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="bn">
 <head>
 <meta charset="UTF-8">
-<title>Cloud Mart - User</title>
+<title>Cloud Mart - Admin (Firebase)</title>
 <style>
-body { font-family: Arial, sans-serif; background:#f9f9f9; margin:0; padding:0;}
-header { background:#fff; padding:15px; text-align:center; font-size:22px; font-weight:bold; box-shadow:0 2px 5px rgba(0,0,0,0.1); position:relative;}
-header .logo { height:40px; width:auto; border-radius:8px;}
-.container { padding:20px;}
-.search-bar { margin-bottom:20px; display:flex; gap:10px; align-items:center;}
-input, select, button { padding:10px; margin:5px 0; border:1px solid #ccc; border-radius:5px;}
-.product-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:20px;}
-.card { background:#fff; padding:15px; border-radius:10px; box-shadow:0 2px 5px rgba(0,0,0,0.1); text-align:center; opacity:0; transform:translateY(20px); transition:0.5s;}
-.card.show { opacity:1; transform:translateY(0);}
-.card img { width:100%; height:140px; object-fit:cover; border-radius:8px; transition:0.3s;}
-.card:hover img { transform:scale(1.05);}
-.card button { background:#007bff; color:#fff; border:none; padding:10px; width:100%; border-radius:5px; cursor:pointer; transition:0.3s;}
-.card button:hover { background:#0056b3;}
-.modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); justify-content:center; align-items:center; opacity:0; transition:0.3s; z-index:999;}
-.modal.show { display:flex; opacity:1;}
-.modal-content { background:#fff; padding:20px; border-radius:10px; width:320px; animation:fadeIn 0.5s;}
-@keyframes fadeIn { from {opacity:0; transform:translateY(-20px);} to {opacity:1; transform:translateY(0);} }
-.close { cursor:pointer; font-weight:bold; float:right;}
-#bkashFields, #nagadFields { display:none; }
+/* --- Responsive & modern touch --- */
+body { font-family: Arial, sans-serif; background:#f4f4f4; margin:0; padding:0; }
+header { background:#333; color:#fff; padding:15px; text-align:center; font-size:2vw; min-font-size:18px; }
+.container { padding:20px; max-width:1200px; margin:auto; box-sizing:border-box; }
 
-/* ===== Order Status Panel ===== */
-#orderStatusPanel {
-  position:fixed; top:0; right:-400px; width:350px; height:100%;
-  background:#fff; box-shadow:-2px 0 10px rgba(0,0,0,0.2);
-  transition:0.4s; padding:0; overflow-y:auto; z-index:1000;
-  display:flex; flex-direction:column;
-}
-#orderStatusPanel.show { right:0; }
-#orderStatusBtn {
-  margin-left:auto; padding:8px 15px;
-  background:#2a99f4; color:#fff; border:none; border-radius:6px;
-  cursor:pointer; font-size:14px;
-  transition:0.3s;
-}
-#orderStatusBtn:hover { background:#298cdc; }
+h2 { margin-top:30px; font-size:1.5em; }
 
-/* Panel Header */
-#orderPanelHeader {
-  background:#007bff; color:#fff; padding:15px; font-size:18px;
-  display:flex; justify-content:space-between; align-items:center;
-  border-top-left-radius:6px; border-top-right-radius:6px;
-}
-#orderPanelHeader .closePanel { cursor:pointer; font-size:18px; font-weight:bold; }
+input, select, button, textarea { padding:10px; margin:5px 0; border:1px solid #ccc; border-radius:5px; width:100%; box-sizing:border-box; font-size:1em; }
+table { width:100%; border-collapse:collapse; border-spacing:0; margin-top:15px; font-size:0.9em; }
+th, td { border:1px solid #ddd; padding:10px; text-align:center; vertical-align: middle; }
+th { background:#555; color:#fff; font-weight:600; }
 
-/* Orders Table */
-.completed { padding:10px; }
-.completed table { width:100%; border-collapse:collapse; margin-top:10px; background:#fff; border-radius:8px; overflow:hidden; box-shadow:0 2px 5px rgba(0,0,0,0.1);}
-.completed th, .completed td { border:1px solid #ddd; padding:8px; text-align:center; font-size:13px;}
-.completed th { background:#007bff; color:#fff;}
+button { cursor:pointer; transition:0.3s; font-size:0.9em; }
+button:hover { transform:scale(1.05); }
+
+.delete { background:#dc3545; color:#fff; border:none; padding:6px 10px; }
+.done { background:#28a745; color:#fff; border:none; padding:6px 10px; }
+.print { background:#007bff; color:#fff; border:none; padding:6px 10px; }
+.edit { background:#ffc107; color:#111; border:none; padding:6px 10px; }
+
+.form-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:10px; align-items:start; }
+
+img.thumb { width:50px; height:50px; object-fit:cover; border-radius:6px; }
+
+.notice { font-size:13px; color:#444; margin-top:6px; }
+
+tbody tr { opacity:0; transform:translateY(10px); transition:0.4s ease; }
+tbody tr.show { opacity:1; transform:translateY(0); }
+
+.small { font-size:13px; padding:6px 8px; }
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  header { font-size:4vw; }
+  input, select, button, textarea { font-size:0.9em; }
+  table, th, td { font-size:0.8em; }
+  .form-grid { grid-template-columns:1fr; }
+}
+@media (max-width: 480px) {
+  header { font-size:5vw; }
+  table, th, td { font-size:0.75em; padding:6px; }
+  .thumb { width:40px; height:40px; }
+  .done, .delete, .edit, .print { padding:4px 6px; font-size:0.7em; }
+}
 </style>
+
 </head>
 <body>
-
-<header>
-  <img src="logo.png" alt="Cloud Mart logo" class="logo">
-  <span>Cloud Mart</span>
-</header>
-
+<header>Cloud Mart - Admin Panel</header>
 <div class="container">
-  <div class="search-bar">
-    <input type="text" id="search" placeholder="Search product...">
-    <select id="categoryFilter"></select>
-    <button id="orderStatusBtn">📦 Order Status</button>
-  </div>
-  
-  <div class="product-grid" id="productGrid"></div>
-</div>
 
-<div id="orderStatusPanel">
-  <div id="orderPanelHeader">
-    <span>✅ Your Orders</span>
-    <span class="closePanel" id="closeOrderPanel">&times;</span>
+  <h2>Payment Method</h2>
+  <div style="max-width:420px;">
+    <label>Bkash Number:</label>
+    <input type="text" id="adminBkash" placeholder="Enter Bkash Number">
+    <label>Nagad Number:</label>
+    <input type="text" id="adminNagad" placeholder="Enter Nagad Number">
+    <div style="display:flex;gap:8px;">
+      <button id="savePaymentBtn" style="flex:1">Save Payment Numbers</button>
+      <button id="reloadPaymentBtn" style="flex:1">Reload From Firebase</button>
+    </div>
+    <p class="notice">Payment নম্বর change করলে অবশ্যই Save চাপুন — তা Firebase এ আপডেট হবে।</p>
   </div>
-  <div class="completed">
-    <table>
-      <thead>
-        <tr>
-          <th>Product</th>
-          <th>Payment</th>
-          <th>Trnx ID</th>
-          <th>Date</th>
-          <th>Status</th>
-        </tr>
-      </thead>
-      <tbody id="completedList"></tbody>
-    </table>
-  </div>
-</div>
 
-<div class="modal" id="orderModal">
-  <div class="modal-content">
-    <span class="close" onclick="closeModal()">&times;</span>
-    <h3>Order Product</h3>
-    <form id="orderForm">
-      <input type="text" id="orderProduct" readonly><br>
-      <input id="orderDescription" readonly><br>
-      <input type="text" id="userName" placeholder="Your Name" required><br>
-      <input type="email" id="userEmail" placeholder="Email" required><br>
-      <input type="tel" id="userPhone" placeholder="Phone Number" required><br>
-      <select id="paymentMethod" required>
-        <option value="">Select Payment</option>
-        <option value="Bkash">Bkash</option>
-        <option value="Nagad">Nagad</option>
-      </select><br>
-      <div id="bkashFields">
-        <p>Bkash Number: <span id="adminBkashNum"></span></p>
-        <input type="text" id="sendNumberBkash" placeholder="Your Send Money Number"><br>
-        <input type="text" id="trnxIDBkash" placeholder="Transaction ID"><br>
+  <h2>Add / Edit Product</h2>
+  <form id="productForm">
+    <div class="form-grid">
+      <input type="text" id="prodName" placeholder="Product Name" required>
+      <input type="text" id="prodCategory" placeholder="Category" required>
+      <input type="number" id="prodPrice" placeholder="Price" step="0.01" required>
+      <input id="prodDescription" placeholder="Product Description" rows="2" required>
+      <input type="file" id="prodImage" accept="image/*">
+      <div>
+        <button type="submit" id="addUpdateBtn">Add Product</button>
+        <button type="button" id="cancelEditBtn" style="display:none;margin-left:8px;background:#6c757d;color:#fff;">Cancel Edit</button>
       </div>
-      <div id="nagadFields">
-        <p>Nagad Number: <span id="adminNagadNum"></span></p>
-        <input type="text" id="sendNumberNagad" placeholder="Your Send Money Number"><br>
-        <input type="text" id="trnxIDNagad" placeholder="Transaction ID"><br>
-      </div>
-      <button type="submit">Submit Order</button>
-      <button type="button" onclick="closeModal()">Cancel</button>
-    </form>
-  </div>
+    </div>
+  </form>
+
+  <h2>Product List</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Category</th>
+        <th>Price</th>
+        <th>Description</th>
+        <th>Image</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody id="productList"></tbody>
+  </table>
+
+  <h2>Orders</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Product</th>
+        <th>User</th>
+        <th>Email</th>
+        <th>Phone</th>
+        <th>Payment</th>
+        <th>Send Number</th>
+        <th>Trnx ID</th>
+        <th>Date</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody id="orderList"></tbody>
+  </table>
+
 </div>
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
-import { getDatabase, ref, onValue, push, set } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-database.js";
+<!-- Using Firebase v8 CDN (works with firebase.initializeApp style) -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
-// ===== Firebase Config =====
+<script>
+/* ============================
+   Replace with your config
+   ============================ */
 const firebaseConfig = {
-  apiKey: "AIzaSyD-UpdatedAPIKeyExample123456",
+  apiKey: "AIzaSyCl9ENd3XOP1KeutD7s1zSiXYSuz4VIqGU",
   authDomain: "cloud-mart01.firebaseapp.com",
   databaseURL: "https://cloud-mart01-default-rtdb.firebaseio.com",
   projectId: "cloud-mart01",
-  storageBucket: "cloud-mart01.appspot.com",
+  storageBucket: "cloud-mart01.firebasestorage.app",
   messagingSenderId: "656495467691",
-  appId: "1:656495467691:web:updatedappid123456",
-  measurementId: "G-UPDATEDMEASUREID"
+  appId: "1:656495467691:web:b0c0f7356b36af5de12bee",
+  measurementId: "G-PXLYR809MM"
 };
 
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
 
-const productGrid=document.getElementById("productGrid");
-const search=document.getElementById("search");
-const categoryFilter=document.getElementById("categoryFilter");
-const orderModal=document.getElementById("orderModal");
-const orderProduct=document.getElementById("orderProduct");
-const orderDescription=document.getElementById("orderDescription");
-const paymentMethod=document.getElementById("paymentMethod");
-const bkashFields=document.getElementById("bkashFields");
-const nagadFields=document.getElementById("nagadFields");
-const adminBkashNum=document.getElementById("adminBkashNum");
-const adminNagadNum=document.getElementById("adminNagadNum");
-const completedList=document.getElementById("completedList");
+/* ============================
+   DOM refs
+   ============================ */
+const prodForm = document.getElementById('productForm');
+const prodName = document.getElementById('prodName');
+const prodCategory = document.getElementById('prodCategory');
+const prodPrice = document.getElementById('prodPrice');
+const prodDescription = document.getElementById('prodDescription');
+const prodImage = document.getElementById('prodImage');
+const addUpdateBtn = document.getElementById('addUpdateBtn');
+const cancelEditBtn = document.getElementById('cancelEditBtn');
 
-/* ===== Load Products ===== */
-let products=[];
-onValue(ref(db,"products"),snapshot=>{
-  products=[]; productGrid.innerHTML="";
-  if(snapshot.exists()){
-    snapshot.forEach(child=>products.push(child.val()));
-  }
-  renderCategories();
-  renderProducts();
+const productList = document.getElementById('productList');
+const orderList = document.getElementById('orderList');
+
+const adminBkashInput = document.getElementById('adminBkash');
+const adminNagadInput = document.getElementById('adminNagad');
+const savePaymentBtn = document.getElementById('savePaymentBtn');
+const reloadPaymentBtn = document.getElementById('reloadPaymentBtn');
+
+/* ============================
+   State
+   ============================ */
+let editingKey = null; // যদি edit mode হয়, এখানে product key থাকবে
+
+/* ============================
+   Payment: load & save
+   ============================ */
+function loadPayment() {
+  db.ref('payment').once('value').then(snap=>{
+    const d = snap.val() || {};
+    adminBkashInput.value = d.bkash || '';
+    adminNagadInput.value = d.nagad || '';
+  }).catch(err=>{
+    console.error('Load payment err:', err);
+    alert('Payment load failed. Check console.');
+  });
+}
+savePaymentBtn.addEventListener('click', ()=>{
+  const bk = adminBkashInput.value.trim();
+  const ng = adminNagadInput.value.trim();
+  db.ref('payment').update({ bkash: bk, nagad: ng })
+    .then(()=> alert('Payment numbers saved to Firebase.'))
+    .catch(e=> { console.error(e); alert('Save failed.'); });
+});
+reloadPaymentBtn.addEventListener('click', loadPayment);
+// realtime update (optional)
+db.ref('payment').on('value', snap=>{
+  const d = snap.val() || {};
+  // update inputs only if not focused to avoid interrupt
+  if (document.activeElement !== adminBkashInput) adminBkashInput.value = d.bkash || '';
+  if (document.activeElement !== adminNagadInput) adminNagadInput.value = d.nagad || '';
 });
 
-/* ===== Load Payment Numbers ===== */
-onValue(ref(db,"payment"),snap=>{
-  const d=snap.val()||{};
-  adminBkashNum.textContent=d.bkash||"";
-  adminNagadNum.textContent=d.nagad||"";
-});
-
-/* ===== Render Functions ===== */
-function renderCategories(){
-  let cats=[...new Set(products.map(p=>p.category))];
-  categoryFilter.innerHTML=`<option value="">All Categories</option>`;
-  cats.forEach(c=>categoryFilter.innerHTML+=`<option value="${c}">${c}</option>`);
-}
-function renderProducts(){
-  let term=search.value.toLowerCase();
-  let cat=categoryFilter.value;
-  productGrid.innerHTML="";
-  products.filter(p=>(!cat||p.category===cat)&&p.name.toLowerCase().includes(term))
-    .forEach((p,i)=>{
-      let card=document.createElement("div");
-      card.className="card";
-      card.innerHTML=`
-        <img src="${p.image||'https://via.placeholder.com/200'}">
-        <h4>${p.name}</h4>
-        <p>${p.category}</p>
-        <p>${p.description}</p>
-        <p><b>$${p.price}</b></p>
-        <button onclick="openModal('${p.name}','${p.description.replace(/'/g,"&#39;")}')">Order</button>`;
-      productGrid.appendChild(card);
-      setTimeout(()=>card.classList.add("show"),100*i);
-    });
+/* ============================
+   Products: add / edit / delete / render
+   ============================ */
+function resetForm() {
+  prodForm.reset();
+  editingKey = null;
+  addUpdateBtn.textContent = 'Add Product';
+  cancelEditBtn.style.display = 'none';
 }
 
-/* ===== Modal Functions ===== */
-window.openModal=function(name,desc){
-  orderProduct.value=name;
-  orderDescription.value=desc;
-  orderModal.classList.add("show");
-  bkashFields.style.display="none";
-  nagadFields.style.display="none";
-  paymentMethod.value="";
-}
-window.closeModal=function(){ orderModal.classList.remove("show"); }
-paymentMethod.addEventListener("change",()=>{
-  bkashFields.style.display=paymentMethod.value==="Bkash"?"block":"none";
-  nagadFields.style.display=paymentMethod.value==="Nagad"?"block":"none";
-});
+cancelEditBtn.addEventListener('click', resetForm);
 
-/* ===== Order Submit ===== */
-document.getElementById("orderForm").addEventListener("submit",e=>{
+prodForm.addEventListener('submit', e=>{
   e.preventDefault();
-  const newOrder={
-    product:orderProduct.value,
-    description:orderDescription.value,
-    name:document.getElementById("userName").value,
-    email:document.getElementById("userEmail").value,
-    phone:document.getElementById("userPhone").value,
-    payment:paymentMethod.value,
-    sendNumber:paymentMethod.value==="Bkash"?document.getElementById("sendNumberBkash").value:document.getElementById("sendNumberNagad").value,
-    trnx:paymentMethod.value==="Bkash"?document.getElementById("trnxIDBkash").value:document.getElementById("trnxIDNagad").value,
-    date:new Date().toLocaleString(),
-    status:"Pending"
-  };
-  const orderRef=push(ref(db,"orders"));
-  set(orderRef,newOrder).then(()=>{
-    alert("Order Submitted!");
-    e.target.reset();
-    closeModal();
+  const name = prodName.value.trim();
+  const category = prodCategory.value.trim();
+  const price = prodPrice.value;
+  const description = prodDescription.value.trim();
+  const file = prodImage.files[0];
+
+  if (!name || !category || !price) {
+    alert('Name, Category and Price are required.');
+    return;
+  }
+
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+      const imageData = ev.target.result; // base64 dataURL
+      submitProduct({ name, category, price, description, image: imageData });
+    };
+    reader.readAsDataURL(file);
+  } else {
+    // if editing and no new image provided, preserve old image (fetch it)
+    if (editingKey) {
+      db.ref('products/' + editingKey).once('value').then(snap=>{
+        const existing = snap.val() || {};
+        submitProduct({ name, category, price, description, image: existing.image || '' });
+      });
+    } else {
+      submitProduct({ name, category, price, description, image: '' });
+    }
+  }
+});
+
+function submitProduct(productObj) {
+  if (editingKey) {
+    // update
+    db.ref('products/' + editingKey).update(productObj)
+      .then(()=> {
+        alert('Product updated');
+        resetForm();
+      })
+      .catch(e=> { console.error(e); alert('Update failed'); });
+  } else {
+    // push new
+    db.ref('products').push(productObj)
+      .then(()=> {
+        alert('Product added');
+        resetForm();
+      })
+      .catch(e=> { console.error(e); alert('Add failed'); });
+  }
+}
+
+/* listen products realtime and render */
+db.ref('products').on('value', snapshot=>{
+  productList.innerHTML = '';
+  let i = 0;
+  snapshot.forEach(child=>{
+    const p = child.val();
+    const key = child.key;
+    const tr = document.createElement('tr');
+    tr.className = 'show';
+    tr.innerHTML = `
+      <td>${escapeHtml(p.name)}</td>
+      <td>${escapeHtml(p.category)}</td>
+      <td>$${escapeHtml(p.price)}</td>
+      <td style="max-width:260px;word-wrap:break-word;text-align:left;padding-left:10px;">${escapeHtml(p.description)}</td>
+      <td>${p.image?('<img class="thumb" src="'+p.image+'">'):'<span class="small">No image</span>'}</td>
+      <td>
+        <button class="edit small" onclick="startEdit('${key.replace(/'/g,"\\'")}')">Edit</button>
+        <button class="delete small" onclick="deleteProduct('${key.replace(/'/g,"\\'")}')">Delete</button>
+      </td>
+    `;
+    productList.appendChild(tr);
+    setTimeout(()=> tr.classList.add('show'), 40 * i);
+    i++;
   });
 });
 
-/* ===== Show Orders with Status (max 5, live update) ===== */
-onValue(ref(db,"orders"),snap=>{
-  completedList.innerHTML="";
-  if(snap.exists()){
-    let arr=[];
-    snap.forEach(child=> arr.push(child.val()));
-    arr.sort((a,b)=> new Date(b.date) - new Date(a.date));
-    arr.slice(0,5).forEach(o=>{
-      let tr=document.createElement("tr");
-      tr.innerHTML=`
-        <td>${o.product}</td>
-        <td>${o.payment}</td>
-        <td>${o.trnx}</td>
-        <td>${o.date}</td>
-        <td>${o.status}</td>`; // Pending / Order Complete
-      completedList.appendChild(tr);
-    });
-  }
+/* start editing a product */
+window.startEdit = function(key) {
+  db.ref('products/' + key).once('value').then(snap=>{
+    const p = snap.val();
+    if (!p) return alert('Product not found.');
+    prodName.value = p.name || '';
+    prodCategory.value = p.category || '';
+    prodPrice.value = p.price || '';
+    prodDescription.value = p.description || '';
+    // image input can't be set programmatically for security; inform user:
+    alert('Product loaded into form. If you want to replace image, choose a new file; otherwise existing image will be preserved on update.');
+    editingKey = key;
+    addUpdateBtn.textContent = 'Update Product';
+    cancelEditBtn.style.display = 'inline-block';
+  }).catch(e=> { console.error(e); alert('Cannot load product for edit.'); });
+};
+
+/* delete product */
+window.deleteProduct = function(key) {
+  if (!confirm('Are you sure you want to delete this product?')) return;
+  db.ref('products/' + key).remove()
+    .then(()=> { /* removed */ })
+    .catch(e=> { console.error(e); alert('Delete failed'); });
+};
+
+/* escape HTML helper to avoid simple injection in table */
+function escapeHtml(text) {
+  if (text === undefined || text === null) return '';
+  return String(text)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+/* ============================
+   Orders: pending orders (max 5)
+   ============================ */
+db.ref('orders').on('value', snap => {
+  orderList.innerHTML = '';
+  let i = 0;
+  const orders = [];
+  snap.forEach(child => {
+    const o = child.val();
+    o.key = child.key;
+    orders.push(o);
+  });
+  const latestOrders = orders.sort((a,b)=> new Date(b.date || 0) - new Date(a.date || 0)).slice(0,5);
+  
+  latestOrders.forEach(o => {
+    const tr = document.createElement('tr');
+    tr.className = 'show';
+    tr.innerHTML = `
+      <td>${escapeHtml(o.product)}</td>
+      <td>${escapeHtml(o.name)}</td>
+      <td>${escapeHtml(o.email)}</td>
+      <td>${escapeHtml(o.phone)}</td>
+      <td>${escapeHtml(o.payment)}</td>
+      <td>${escapeHtml(o.sendNumber||'')}</td>
+      <td>${escapeHtml(o.trnx||'')}</td>
+      <td>${escapeHtml(o.date||'')}</td>
+      <td>
+        <button class="done small" onclick="markDone('${o.key.replace(/'/g,"\\'")}')">Complete</button>
+        <button class="print small" onclick="printInvoice('${o.key.replace(/'/g,"\\'")}')">Print</button>
+      </td>
+    `;
+    orderList.appendChild(tr);
+    setTimeout(()=> tr.classList.add('show'), 40 * i);
+    i++;
+  });
 });
 
-/* ===== Events ===== */
-search.addEventListener("input",renderProducts);
-categoryFilter.addEventListener("change",renderProducts);
+/* ============================
+   Mark order as complete
+   ============================ */
+window.markDone = function(orderKey) {
+  if(!confirm('Mark this order as complete?')) return;
+  
+  // Read order first
+  db.ref('orders/' + orderKey).once('value').then(snap => {
+    const orderData = snap.val();
+    if(!orderData) return alert('Order not found');
+    
+    // Push to Complete Orders node
+    db.ref('Complete Orders/' + orderKey).set({...orderData, status:'Complete'})
+      .then(() => {
+        // Remove from pending orders
+        return db.ref('orders/' + orderKey).remove();
+      })
+      .catch(e => {
+        console.error(e);
+        alert('Failed to mark complete.');
+      });
+  });
+};
 
-/* ===== Order Status Panel Toggle ===== */
-const orderPanel=document.getElementById("orderStatusPanel");
-document.getElementById("orderStatusBtn").addEventListener("click",()=>{ orderPanel.classList.add("show"); });
-document.getElementById("closeOrderPanel").addEventListener("click",()=>{ orderPanel.classList.remove("show"); });
+/* ============================
+   Optionally: render Complete Orders
+   ============================ */
+const completeList = document.getElementById('completeOrderList'); // আলাদা table tbody
+db.ref('Complete Orders').on('value', snap => {
+  if(!completeList) return;
+  completeList.innerHTML = '';
+  snap.forEach(child => {
+    const o = child.val();
+    const key = child.key;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${escapeHtml(o.product)}</td>
+      <td>${escapeHtml(o.name)}</td>
+      <td>${escapeHtml(o.email)}</td>
+      <td>${escapeHtml(o.phone)}</td>
+      <td>${escapeHtml(o.payment)}</td>
+      <td>${escapeHtml(o.sendNumber||'')}</td>
+      <td>${escapeHtml(o.trnx||'')}</td>
+      <td>${escapeHtml(o.date||'')}</td>
+      <td><span style="color:green;font-weight:bold;">Complete</span></td>
+    `;
+    completeList.appendChild(tr);
+  });
+});
 
+
+/* print invoice for order key */
+window.printInvoice = function(orderKey) {
+  db.ref('orders/' + orderKey).once('value').then(snap=>{
+    const o = snap.val();
+    if (!o) return alert('Order not found');
+    openPrintWindow(o);
+  }).catch(e=>{ console.error(e); alert('Failed to load order'); });
+};
+
+function openPrintWindow(order) {
+  const w = window.open('', '', 'width=800,height=600');
+  const html = `
+    <html><head><title>Admin Invoice</title>
+    <style>body{font-family:Arial;padding:20px} h2{text-align:center} p{margin:6px 0}</style>
+    </head><body>
+    <h2>Cloud Mart Invoice</h2>
+    <p><b>Date:</b> ${escapeHtml(order.date || '')}</p>
+    <p><b>Name:</b> ${escapeHtml(order.name || '')}</p>
+    <p><b>Email:</b> ${escapeHtml(order.email || '')}</p>
+    <p><b>Phone:</b> ${escapeHtml(order.phone || '')}</p>
+    <p><b>Product:</b> ${escapeHtml(order.product || '')}</p>
+    <p><b>Payment:</b> ${escapeHtml(order.payment || '')}</p>
+    <p><b>Send Number:</b> ${escapeHtml(order.sendNumber || '')}</p>
+    <p><b>Transaction ID:</b> ${escapeHtml(order.trnx || '')}</p>
+    <hr><p style="text-align:center">✅ Thank you for your purchase!</p>
+    </body></html>`;
+  w.document.write(html);
+  w.document.close();
+  w.print();
+}
+
+/* ============================
+   Init: load payment & initial render (listeners already set)
+   ============================ */
+loadPayment();
+
+/* ============================
+   Helpful: Clear form on page refresh (so edit state not persisted accidentally)
+   ============================ */
+window.addEventListener('beforeunload', ()=> {
+  // optional: reset editing key
+  // not necessary, but keep clean
+});
+
+/* ============================
+   End
+   ============================ */
 </script>
 </body>
 </html>
