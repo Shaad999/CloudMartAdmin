@@ -298,14 +298,21 @@ function escapeHtml(text) {
 }
 
 /* ============================
-   Orders: realtime render & done (delete)
+   Orders: realtime render & complete
    ============================ */
 db.ref('orders').on('value', snap=>{
   orderList.innerHTML = '';
   let i = 0;
+  const orders = [];
   snap.forEach(child=>{
     const o = child.val();
-    const key = child.key;
+    o.key = child.key;
+    orders.push(o);
+  });
+  // show only 5 latest incomplete orders first
+  const incompleteOrders = orders.filter(o => o.status !== 'Complete').slice(0,5);
+  
+  incompleteOrders.forEach(o=>{
     const tr = document.createElement('tr');
     tr.className = 'show';
     tr.innerHTML = `
@@ -318,8 +325,10 @@ db.ref('orders').on('value', snap=>{
       <td>${escapeHtml(o.trnx||'')}</td>
       <td>${escapeHtml(o.date||'')}</td>
       <td>
-        <button class="done small" onclick="markDone('${key.replace(/'/g,"\\'")}')">Done</button>
-        <button class="print small" onclick="printInvoice('${key.replace(/'/g,"\\'")}')">Print</button>
+        ${o.status === 'Complete' 
+          ? '<span class="small" style="color:green;font-weight:bold;">Complete</span>'
+          : `<button class="done small" onclick="markDone('${o.key.replace(/'/g,"\\'")}')">Complete</button>`}
+        <button class="print small" onclick="printInvoice('${o.key.replace(/'/g,"\\'")}')">Print</button>
       </td>
     `;
     orderList.appendChild(tr);
@@ -329,9 +338,11 @@ db.ref('orders').on('value', snap=>{
 });
 
 window.markDone = function(orderKey) {
-  if (!confirm('Mark this order as done (will remove from DB)?')) return;
-  db.ref('orders/' + orderKey).remove().catch(e=>{ console.error(e); alert('Failed to remove order.'); });
+  if (!confirm('Mark this order as complete?')) return;
+  db.ref('orders/' + orderKey).update({ status: 'Complete' })
+    .catch(e => { console.error(e); alert('Failed to mark complete.'); });
 };
+
 
 /* print invoice for order key */
 window.printInvoice = function(orderKey) {
